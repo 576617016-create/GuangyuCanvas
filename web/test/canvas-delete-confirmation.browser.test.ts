@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { chromium, type Browser } from "playwright";
 
 let browser: Browser;
@@ -31,7 +32,8 @@ beforeAll(async () => {
         }
         return new Response('<div id="root"></div><script type="module" src="/harness.js"></script>', { headers: { "Content-Type": "text/html" } });
     } });
-    browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: true });
+    const executablePath = [process.env.CHROME_PATH, "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find((path): path is string => Boolean(path && existsSync(path)));
+    browser = await chromium.launch({ executablePath, headless: true });
 }, 60000);
 afterAll(async () => { release?.(); await browser?.close(); server?.stop(true); });
 beforeEach(() => { calls = []; fail = false; gate = undefined; release = undefined; });
