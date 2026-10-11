@@ -250,7 +250,17 @@ func DoBinary(req *http.Request) ([]byte, string, error) {
 	return DoBinaryWithConsumer(req, nil)
 }
 
-func DoBinaryWithConsumer(req *http.Request, onChunk func(string, []byte)) (responseData []byte, responseMime string, resultErr error) {
+func DoBinaryWithConsumer(req *http.Request, onChunk func(string, []byte)) ([]byte, string, error) {
+	return doBinaryWithAdmission(req, onChunk, nil)
+}
+
+// DoBinaryWithDispatchAdmission fences a paid send after local preflight and
+// channel admission, immediately before transport can make its outcome unknown.
+func DoBinaryWithDispatchAdmission(req *http.Request, admit func() error) ([]byte, string, error) {
+	return doBinaryWithAdmission(req, nil, admit)
+}
+
+func doBinaryWithAdmission(req *http.Request, onChunk func(string, []byte), admit func() error) (responseData []byte, responseMime string, resultErr error) {
 	startedAt := time.Now()
 	observation := TransportObservation{Request: req, StartedAt: startedAt, ResponseLimitBytes: MaxResponseBytes}
 	defer func() {
@@ -304,6 +314,14 @@ func DoBinaryWithConsumer(req *http.Request, onChunk func(string, []byte)) (resp
 	client := outbound.OutboundHTTPClient(requestTimeout)
 	if noRedirect, _ := req.Context().Value(binaryNoRedirectContext{}).(bool); noRedirect {
 		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	}
+	if err := req.Context().Err(); err != nil {
+		return nil, "", err
+	}
+	if admit != nil {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
 	}
 	observation.Dispatched = true
 	resp, err := client.Do(req)

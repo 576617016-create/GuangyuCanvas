@@ -228,10 +228,12 @@ func prepareImageSubmission(s *Service, req *http.Request) (*model.ImageSubmissi
 }
 
 func (s *Service) sendImageSubmission(ctx context.Context, task model.Task, row *model.ImageSubmission) ([]byte, string, error) {
-	return s.sendImageSubmissionWith(ctx, task, row, func(req *http.Request) ([]byte, string, error) { return doBinaryWithConsumer(req, nil) }, sleepContext)
+	return s.sendImageSubmissionWith(ctx, task, row, func(req *http.Request, admit func() error) ([]byte, string, error) {
+		return generation.DoBinaryWithDispatchAdmission(withHTTPRequestRuntime(req), admit)
+	}, sleepContext)
 }
 
-func (s *Service) sendImageSubmissionWith(ctx context.Context, task model.Task, row *model.ImageSubmission, send func(*http.Request) ([]byte, string, error), wait func(context.Context, time.Duration) error) ([]byte, string, error) {
+func (s *Service) sendImageSubmissionWith(ctx context.Context, task model.Task, row *model.ImageSubmission, send func(*http.Request, func() error) ([]byte, string, error), wait func(context.Context, time.Duration) error) ([]byte, string, error) {
 	if row.TaskID != task.ID || row.UserID != task.UserID {
 		return nil, "", imageRecoveryError{errors.New("图片任务归属不一致")}
 	}
@@ -252,7 +254,8 @@ func (s *Service) sendImageSubmissionWith(ctx context.Context, task model.Task, 
 	}
 	ctx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
-	for roundSends := 0; ; roundSends++ {
+	initialSendCount := row.SendCount
+	for {
 		if err := ctx.Err(); err != nil {
 			return nil, "", imageRecoveryError{err}
 		}
@@ -264,10 +267,15 @@ func (s *Service) sendImageSubmissionWith(ctx context.Context, task model.Task, 
 		if !recoverableImageEndpoint(req) || req.Header.Get("Idempotency-Key") == "" {
 			return nil, "", imageRecoveryError{errors.New("图片恢复记录无效")}
 		}
-		if err := s.repo.ClaimImageSubmissionSend(row, task.LeaseOwner, imageRecoveryMaxSends); err != nil {
-			return nil, "", imageRecoveryError{err}
-		}
-		data, mime, sendErr := send(req)
+		data, mime, sendErr := send(req, func() error {
+			if err := ctx.Err(); err != nil {
+				return imageRecoveryError{err}
+			}
+			if err := s.repo.ClaimImageSubmissionSend(row, task.LeaseOwner, imageRecoveryMaxSends); err != nil {
+				return imageRecoveryError{err}
+			}
+			return nil
+		})
 		if sendErr == nil {
 			if err := s.repo.MarkImageSubmissionAccepted(row); err != nil {
 				return nil, "", imageRecoveryError{err}
@@ -288,7 +296,7 @@ func (s *Service) sendImageSubmissionWith(ctx context.Context, task model.Task, 
 			}
 			return nil, "", sendErr
 		}
-		if (!row.ResponseAccepted && row.SendCount >= imageRecoveryMaxSends) || (row.ResponseAccepted && roundSends >= 2) {
+		if (!row.ResponseAccepted && row.SendCount >= imageRecoveryMaxSends) || (row.ResponseAccepted && row.SendCount-initialSendCount >= 3) {
 			return nil, "", imageRecoveryError{sendErr}
 		}
 		delay := time.Second * time.Duration(1<<min(row.SendCount, 5))

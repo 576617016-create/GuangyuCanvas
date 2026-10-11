@@ -136,7 +136,10 @@ func TestImageSubmissionDiskRestartReplaysOneGenerationAndCompletesOnce(t *testi
 	s, db, task, row, body := imageSubmissionFixture(t, false)
 	var wireCalls, generations int
 	key := ""
-	send := func(req *http.Request) ([]byte, string, error) {
+	send := func(req *http.Request, admit func() error) ([]byte, string, error) {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
 		wireCalls++
 		got, _ := io.ReadAll(req.Body)
 		if !bytes.Equal(got, body) {
@@ -288,7 +291,10 @@ func TestImageSubmissionLostResponsePendingAndReplay(t *testing.T) {
 		t.Run(map[bool]string{false: "generation", true: "edit"}[multipartBody], func(t *testing.T) {
 			s, _, task, row, body := imageSubmissionFixture(t, multipartBody)
 			calls, key := 0, ""
-			data, _, err := s.sendImageSubmissionWith(context.Background(), task, row, func(req *http.Request) ([]byte, string, error) {
+			data, _, err := s.sendImageSubmissionWith(context.Background(), task, row, func(req *http.Request, admit func() error) ([]byte, string, error) {
+				if err := admit(); err != nil {
+					return nil, "", err
+				}
 				calls++
 				got, _ := io.ReadAll(req.Body)
 				if !bytes.Equal(got, body) {
@@ -340,7 +346,10 @@ func TestImageSubmissionRestartKeepsWireAndBudget(t *testing.T) {
 		t.Fatal("restart reset request budget")
 	}
 	loaded.CreatedAt = time.Now().Add(-2 * time.Hour)
-	_, _, err = restarted.sendImageSubmissionWith(context.Background(), task, loaded, func(req *http.Request) ([]byte, string, error) {
+	_, _, err = restarted.sendImageSubmissionWith(context.Background(), task, loaded, func(req *http.Request, admit func() error) ([]byte, string, error) {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
 		got, _ := io.ReadAll(req.Body)
 		if !bytes.Equal(got, body) {
 			t.Fatal("restart rebuilt request")
@@ -365,7 +374,10 @@ func TestImageSubmissionTerminalResponsesNeverRegenerate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s, _, task, row, _ := imageSubmissionFixture(t, false)
 			calls := 0
-			_, _, err := s.sendImageSubmissionWith(context.Background(), task, row, func(*http.Request) ([]byte, string, error) {
+			_, _, err := s.sendImageSubmissionWith(context.Background(), task, row, func(req *http.Request, admit func() error) ([]byte, string, error) {
+				if err := admit(); err != nil {
+					return nil, "", err
+				}
 				calls++
 				return nil, "", providerHTTPError{StatusCode: tc.status, Body: `{"error":{"code":"` + tc.code + `"}}`}
 			}, noImageWait)
@@ -382,7 +394,13 @@ func TestImageSubmissionTerminalResponsesNeverRegenerate(t *testing.T) {
 func TestImageSubmissionBudgetCancelAndOwnership(t *testing.T) {
 	s, db, task, row, _ := imageSubmissionFixture(t, false)
 	calls := 0
-	send := func(*http.Request) ([]byte, string, error) { calls++; return nil, "", io.ErrUnexpectedEOF }
+	send := func(req *http.Request, admit func() error) ([]byte, string, error) {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
+		calls++
+		return nil, "", io.ErrUnexpectedEOF
+	}
 	_, _, err := s.sendImageSubmissionWith(context.Background(), task, row, send, noImageWait)
 	if calls != imageRecoveryMaxSends || classifyTaskFailure(err).Category != generation.CategorySubmissionUncertain {
 		t.Fatalf("calls=%d err=%v", calls, err)
@@ -462,7 +480,10 @@ func TestImageSubmissionPersistenceRequiredAndScopeAllowlist(t *testing.T) {
 func TestImageSubmissionExpiredMalformedAndStaleLeaseStop(t *testing.T) {
 	s, db, task, row, _ := imageSubmissionFixture(t, false)
 	calls := 0
-	send := func(*http.Request) ([]byte, string, error) {
+	send := func(req *http.Request, admit func() error) ([]byte, string, error) {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
 		calls++
 		return []byte(`{"data":[]}`), "application/json", nil
 	}
@@ -612,7 +633,10 @@ func TestImageSubmissionTwelfthSuccessSurvivesStorageFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	key, calls := "", 0
-	send := func(req *http.Request) ([]byte, string, error) {
+	send := func(req *http.Request, admit func() error) ([]byte, string, error) {
+		if err := admit(); err != nil {
+			return nil, "", err
+		}
 		calls++
 		actual, _ := io.ReadAll(req.Body)
 		if !bytes.Equal(actual, body) {
