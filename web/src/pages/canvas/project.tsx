@@ -35,6 +35,7 @@ import { useUserStore } from "@/stores/use-user-store";
 import { App, Button } from "antd";
 import { ArrowLeftRight } from "lucide-react";
 import { AppModal } from "@/components/ui/product/app-modal";
+import { CanvasDeleteConfirmation } from "@/components/canvas/canvas-delete-confirmation";
 import { CanvasConfigComposer } from "@/components/canvas/canvas-config-composer";
 import { CanvasConfigNodePanel } from "@/components/canvas/canvas-config-node-panel";
 import { CanvasActiveTaskPanel } from "@/components/canvas/canvas-active-task-panel";
@@ -700,17 +701,8 @@ function InfiniteCanvasPage() {
         message.success("画布副本已创建");
     }, [canvasProjects, importCanvasProject, message, projectId]);
 
-    const deleteCanvasFromMenu = useCallback((canvasId: string) => {
-        const canvasTitle = canvasProjects.find((canvas) => canvas.id === canvasId)?.title || "该画布";
-        void (async () => {
-            if (canvasId === projectId) {
-                await deleteCurrentProject();
-                return;
-            }
-            await deleteWorkspaceCanvasProjects([canvasId]);
-            message.success(`「${canvasTitle}」已移入回收站`);
-        })().catch((error) => message.error(error instanceof Error ? `删除画布失败：${error.message}` : "删除画布失败"));
-    }, [canvasProjects, deleteCurrentProject, message, modal, projectId]);
+    const [deletingCanvas, setDeletingCanvas] = useState<{ id: string; scope: CapturedUserScope } | null>(null);
+    const deleteCanvasFromMenu = useCallback((id: string) => setDeletingCanvas({ id, scope: captureUserScope() }), []);
 
     const versions = useCanvasVersionHistory(projectId, restoreCanvasProjectVersion, currentProject);
     // 画布右侧只有一个栏位：助手和版本记录互斥，谁被打开另一个就让位。
@@ -2467,6 +2459,14 @@ function InfiniteCanvasPage() {
 
     return (
         <>
+            {deletingCanvas ? <CanvasDeleteConfirmation scope={deletingCanvas.scope} title="删除画布？"
+                description={`将删除「${canvasProjects.find((canvas) => canvas.id === deletingCanvas.id)?.title || "该画布"}」，里面的节点和连线也会一起移除。`}
+                onCancel={() => setDeletingCanvas(null)} onConfirm={async (assertCurrent) => {
+                    if (deletingCanvas.id === projectId) await deleteCurrentProject();
+                    else await deleteWorkspaceCanvasProjects([deletingCanvas.id]);
+                    assertCurrent();
+                    message.success("画布已删除");
+                }} /> : null}
             <a
                 href="#canvas-main"
                 onClick={(event) => {
@@ -2528,7 +2528,7 @@ function InfiniteCanvasPage() {
                                 onRenameCanvas={renameCanvasFromMenu}
                                 onDuplicateCanvas={duplicateCanvasFromMenu}
                                 onDeleteCanvas={deleteCanvasFromMenu}
-                                onDeleteProject={deleteCurrentProject}
+                                onDeleteProject={() => deleteCanvasFromMenu(projectId)}
                                 onSave={() => void saveCanvasProject()}
                                 onForceSave={confirmForceSaveCanvas}
                                 localOnly={localOnly}
