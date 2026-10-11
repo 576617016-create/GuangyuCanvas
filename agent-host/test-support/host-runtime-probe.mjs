@@ -44,6 +44,10 @@ const ops=createServer(async(req,res)=>{
   res.setHeader('content-type','application/json');
   if(req.headers['x-beeftv-agent-token']!==hostAuth){res.writeHead(403).end(JSON.stringify({code:403,reason:'synthetic_unauthorized'}));return;}
   if(req.method==='GET'&&req.url==='/api/ops'){res.end(JSON.stringify({code:0,data:{ops:descriptors}}));return;}
+  if(req.url.startsWith('/api/assistant/runtime/turns/')){
+    const turnId=decodeURIComponent(req.url.split('/')[5]||'');
+    res.end(JSON.stringify({code:0,data:{turnId,canvasId:turnCanvas.get(turnId)||'canvas',permissionMode:'canvas',open:true}}));return;
+  }
   const body=await readJSON(req);seen.push({path:req.url,body,turn:req.headers['x-beeftv-agent-turn']});
   if(req.url==='/api/ops/asset.get'&&Object.keys(body.params||{}).some(k=>k!=='assetId')){
     res.writeHead(400).end(JSON.stringify({code:400,reason:'invalid_params',msg:'unknown field in asset.get'}));return;
@@ -52,7 +56,9 @@ const ops=createServer(async(req,res)=>{
   res.end(JSON.stringify({code:0,data:{op:req.url.split('/').at(-1),replayed:false,result}}));
 });
 const results=[];
+const turnCanvas=new Map();
 async function request(route,body) {
+  if(body&&body.turnId&&body.canvasId)turnCanvas.set(body.turnId,body.canvasId);
   const response=await fetch(base+route,{method:body===undefined?'GET':'POST',headers:{'content-type':'application/json','X-Beeftv-Agent-Token':hostAuth},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(25000)});
   const text=await response.text();let events=[];try{events=text.trim().split('\n').filter(Boolean).map(line=>JSON.parse(line));}catch{}
   return {status:response.status,events,text};
@@ -63,8 +69,8 @@ try{
   const modelPort=await listen(provider),opsPort=await listen(ops);
   const reservation=createServer();const hostPort=await listen(reservation);await new Promise(resolve=>reservation.close(resolve));
   base=`http://127.0.0.1:${hostPort}`;
-  const env={...process.env,BEEFTV_AGENT_DATA_DIR:scratch,BEEFTV_AGENT_PORT:String(hostPort),BEEFTV_OPS_URL:`http://127.0.0.1:${opsPort}/api`,BEEFTV_AGENT_HOST_TOKEN:hostAuth,BEEFTV_AGENT_API_KEY:'synthetic-model-key',BEEFTV_AGENT_MODEL:'synthetic-model',BEEFTV_AGENT_API:'openai-completions',BEEFTV_AGENT_BASE_URL:`http://127.0.0.1:${modelPort}/v1`,BEEFTV_AGENT_MAX_REQUESTS_PER_TURN:'1',BEEFTV_AGENT_MAX_TOOL_STEPS_PER_TURN:'4',BEEFTV_AGENT_TURN_TIMEOUT_MS:'15000'};
-  env.BEEFTV_AGENT_NEW_SESSION_RUNTIME = 'sdk';
+  const env={...process.env,BEEFTV_AGENT_DATA_DIR:scratch,BEEFTV_AGENT_PORT:String(hostPort),BEEFTV_OPS_URL:`http://127.0.0.1:${opsPort}/api`,BEEFTV_AGENT_HOST_TOKEN:hostAuth,BEEFTV_AGENT_API_KEY:'synthetic-model-key',BEEFTV_AGENT_MODEL:'synthetic-model',BEEFTV_AGENT_API:'openai-completions',BEEFTV_AGENT_BASE_URL:`http://127.0.0.1:${modelPort}/v1`,BEEFTV_AGENT_MAX_REQUESTS_PER_TURN:'1',BEEFTV_AGENT_MAX_TOOL_STEPS_PER_TURN:'4'};
+  delete env.BEEFTV_AGENT_NEW_SESSION_RUNTIME; // 只有 Durable 一套执行运行时。
   child=spawn(process.execPath,[path.join(root,'agent-host/server.mjs')],{cwd:root,env,stdio:['ignore','pipe','pipe']});
   child.stdout.on('data',c=>{hostLog+=c});child.stderr.on('data',c=>{hostLog+=c});
   const deadline=Date.now()+15000;let healthy=false;

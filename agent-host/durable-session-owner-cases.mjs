@@ -6,8 +6,10 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Harness } from '@earendil-works/pi-durable';
+import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import { modelFixture } from './test-support/durable-model-switch-probe.mjs';
 import { durableCompletion, durableToolReplay, publicDurableTurn } from './durable-session-owner.mjs';
+import { createLegacyHistory } from './session-owner.mjs';
 const worker = fileURLToPath(new URL('./durable-owner-fixture.mjs', import.meta.url));
 const processTest = (name, fn) => test(name, { timeout: 60000 }, fn);
 for (const action of ['create', 'activate']) processTest(`failed Durable ${action} closes candidate and preserves the current owner`, async (t) => {
@@ -163,4 +165,34 @@ processTest('actual default Durable host accepts attachment-only steer and block
   const timer = setTimeout(() => child.kill('SIGKILL'), 25000);
   const code = await new Promise((resolve, reject) => { child.on('exit', resolve); child.on('error', reject); }); clearTimeout(timer);
   assert.equal(code, 0, output); assert(output.includes('"attachmentOnly":true'));
+});
+processTest('legacy JSONL handoff seeds a new Durable session with the old transcript as a plain-text reset note', async (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'beeftv-durable-handoff-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const fixture = await modelFixture(directory, 'fixture', ['fixture']);
+  try {
+    const legacy = createLegacyHistory({ sessionRoot: path.join(directory, 'sessions'), workspaceRoot: path.join(directory, 'workspace') });
+    const cwd = legacy.canvasWorkspace('canvas');
+    fs.mkdirSync(cwd, { recursive: true });
+    const sessionDir = legacy.canvasSessionDir('canvas');
+    const sessionId = 'legacy-handoff-source';
+    const timestamp = '2026-10-07T12:00:00.000Z';
+    const rows = [
+      { type: 'session', version: 3, id: sessionId, timestamp, cwd },
+      { type: 'message', id: 'u', parentId: null, timestamp, message: { role: 'user', content: [{ type: 'text', text: '旧会话原始需求' }], timestamp: 1 } },
+      { type: 'message', id: 'a', parentId: 'u', timestamp, message: { role: 'assistant', content: [{ type: 'text', text: '旧会话历史回执' }], timestamp: 2 } },
+    ];
+    fs.writeFileSync(path.join(sessionDir, `2026-10-07T12-00-00-000Z_${sessionId}.jsonl`), rows.map((row) => JSON.stringify(row)).join('\n') + '\n');
+
+    const entry = await fixture.store.handoffSession('canvas', legacy.readHandoffNote('canvas', sessionId));
+    const view = await entry.root.context(BACKGROUND_CONTEXT);
+    assert(view.head && (view.head.model || []).some((message) => message.role === 'user' && JSON.stringify(message.content).includes('旧会话原始需求')));
+
+    const submission = await fixture.store.submit(entry, { turnId: 'handoff-turn', content: '继续改一下' });
+    await fixture.store.wait(entry, submission);
+    const payload = JSON.stringify(fixture.payloads.at(-1));
+    assert(payload.includes('旧会话原始需求'));
+    assert(payload.includes('旧会话历史回执'));
+    assert(payload.includes('继续改一下'));
+  } finally { await fixture.close(); }
 });

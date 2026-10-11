@@ -10,7 +10,7 @@ import { Harness, createRegistry, defineDoc, defineExtension, defineTool, watchE
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node';
 import { canvasKey } from './session-owner.mjs';
 import { newTurnAccumulator, resetTurnAccumulator, turnChange, sessionTitle } from './canvas-turn.mjs';
-import { SYSTEM_PROMPT } from './full-control-loader.mjs';
+import { SYSTEM_PROMPT } from './system-prompt.mjs';
 
 export const DURABLE_VERSION = '1.0.4';
 const STATE = defineDoc({ kind: 'beeftv.host', version: 1, scope: 'session',
@@ -174,6 +174,7 @@ export function createDurableSessionStore({ sessionRoot, workspaceRoot, getModel
         } finally { await persistEffects(entry); }
       },
     }));
+    entry.toolNames = tools.map((tool) => tool.name);
     const operationExtension=defineExtension({ name: 'beeftv.operations.v1', tools, hooks: [hook(GenerationTask, {
       beforeRequest: async (request) => {
         for (;;) {
@@ -213,6 +214,7 @@ export function createDurableSessionStore({ sessionRoot, workspaceRoot, getModel
       const projected=buildTools(canvasId,entry.log,entry.generation,entry.turn,sessionId);
       const byName=new Map(projected.map(t=>[t.name,t]));
       const selected=tools.filter(t=>byName.has(t.name)).map(t=>({...t,parameters:byName.get(t.name).parameters}));
+      entry.toolNames = selected.map((tool) => tool.name);
       registry.install(defineExtension({...operationExtension,tools:selected}));
       if(entry.root) await entry.root.configure({tools:selected,instructions:`${SYSTEM_PROMPT}\n${mode==='read-only'?'只能读取工作区内容，不能修改或生成。':mode==='full-access'?'可读取和修改本工作区的所有画布。付费生成必须等待用户确认。':'仅修改当前画布；其他画布只读。'}`},CTX);
     };
@@ -236,15 +238,32 @@ export function createDurableSessionStore({ sessionRoot, workspaceRoot, getModel
       return entry;
     } catch (error) { await entry.harness.close(CTX); throw error; }
   }
+  // 新建候选：写清单、打开官方 Harness，但不发布指针、不写入 sessions。
+  async function prepareSession(canvasId) {
+    const sessionId = `durable:${crypto.randomUUID()}`;
+    fs.mkdirSync(durableDirectory(canvasId), { recursive: true, mode: 0o700 });
+    const file = path.join(durableDirectory(canvasId), `${idPattern.exec(sessionId)[1]}.json`);
+    fs.writeFileSync(file, JSON.stringify({ sessionId, canvasId, version: DURABLE_VERSION, createdAt: new Date().toISOString() }), { flag: 'wx', mode: 0o600 });
+    const entry = await open(canvasId, sessionId);
+    entry.persistence = 'created';
+    return entry;
+  }
   async function createSession(canvasId) {
     return lock(canvasId, async () => {
       if (sessions.get(canvasId)?.busy) throw fail('session_busy');
-      const sessionId = `durable:${crypto.randomUUID()}`;
-      fs.mkdirSync(durableDirectory(canvasId), { recursive: true, mode: 0o700 });
-      const file = path.join(durableDirectory(canvasId), `${idPattern.exec(sessionId)[1]}.json`);
-      fs.writeFileSync(file, JSON.stringify({ sessionId, canvasId, version: DURABLE_VERSION, createdAt: new Date().toISOString() }), { flag: 'wx', mode: 0o600 });
-      const entry = await open(canvasId, sessionId);
-      entry.persistence = 'created';
+      return install(await prepareSession(canvasId));
+    });
+  }
+  // 旧 JSONL 会话退役后的接续：新建 Durable 会话，并用官方 reset(handoffNote) 写入
+  // 交接说明作为新上下文的开头（没有旧消息时 handoffNote 为空，等价于普通新建）。
+  async function handoffSession(canvasId, handoffNote = '') {
+    return lock(canvasId, async () => {
+      if (sessions.get(canvasId)?.busy) throw fail('session_busy');
+      const entry = await prepareSession(canvasId);
+      if (handoffNote) {
+        try { await entry.root.reset(handoffNote, CTX); }
+        catch (error) { await entry.harness.close(CTX).catch(() => {}); throw error; }
+      }
       return install(entry);
     });
   }
@@ -520,6 +539,6 @@ export function createDurableSessionStore({ sessionRoot, workspaceRoot, getModel
     for (const entry of entries) await entry.harness.close(CTX);
     return entries.length;
   }
-  return { sessions, createSession, activateSession, ensureSession, submit, recover, supplement, beginPendingInput, fenceStop, wait,
+  return { sessions, createSession, handoffSession, activateSession, ensureSession, submit, recover, supplement, beginPendingInput, fenceStop, wait,
     stop, history, status, listCanvasSessions, disposeAll };
 }

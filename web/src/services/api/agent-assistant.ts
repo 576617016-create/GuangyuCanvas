@@ -71,6 +71,8 @@ export type AssistantGenerationProposal = {
 export type AgentTurnEnd = {
     type: "turn_end";
     turnId?: string;
+    /** 宿主本回合实际使用的会话；旧 JSONL 会话首次发消息会交接给新的 Durable 会话，界面据此更新。 */
+    sessionId?: string;
     permissionMode?: AssistantPermissionMode;
     reply: string;
     toolCalls: AgentToolCall[];

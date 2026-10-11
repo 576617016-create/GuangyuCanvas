@@ -423,6 +423,8 @@ export function useCanvasAssistant({ canvasId, onCanvasChanged }: Options) {
                     };
                     current.turns = [...current.turns, turn];
                     current.recovery = null;
+                    // 旧 JSONL 会话首次发消息会交接给新的 Durable 会话：后续回合都走它。
+                    if (end.sessionId && end.sessionId !== current.sessionId) current.sessionId = end.sessionId;
                     current.backgroundActive = false;
                     current.historyError = null;
                     current.pendingUserText = null;

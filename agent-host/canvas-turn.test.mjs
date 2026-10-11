@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 import { collectTurnEffects, extendWriteChain, newTurnAccumulator, rebaseOntoWriteChain, providerRegistration, providerUnavailableReason,
   resetTurnAccumulator, sessionTitle, turnChange, turnContextPrefix, unflushedSessionHistory } from "./canvas-turn.mjs";
-import { SYSTEM_PROMPT } from "./full-control-loader.mjs";
+import { SYSTEM_PROMPT } from "./system-prompt.mjs";
 
 const serverSource = readFileSync(new URL("./server.mjs", import.meta.url), "utf8");
 

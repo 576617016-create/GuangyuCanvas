@@ -1,7 +1,5 @@
-// 只装配产品显式提供的扩展，不发现宿主机或工作区中的资源。
-import { DefaultResourceLoader } from '@earendil-works/pi-coding-agent';
-import { createHostSettingsManager } from './session-settings.mjs';
-
+// 宿主系统提示词：只由产品显式提供，不发现宿主机或工作区中的资源。
+// Durable 会话把 SYSTEM_PROMPT 作为 instructions 直接装配，不再经过旧 SDK 的 DefaultResourceLoader。
 export const MARKER = 'BEEFTV_CANVAS_AGENT_V1';
 export const SYSTEM_PROMPT = [
   MARKER,
@@ -24,19 +22,3 @@ export const SYSTEM_PROMPT = [
   '彼此依赖的写入一次只发一个，等上一个返回后用它给出的最新 revision 再发下一个。',
   '给用户的回复只讲画布上发生了什么和接下来能做什么，不要提 revision、节点 ID、提议编号、工具名、CAS 或重试过程。',
 ].join('\n');
-
-export function createFullControlLoader({ cwd, agentDir, extensionFactories = [] } = {}) {
-  return new DefaultResourceLoader({
-    cwd,
-    agentDir,
-    settingsManager: createHostSettingsManager(),
-    extensionFactories,
-    noExtensions: true,
-    noSkills: true,
-    noPromptTemplates: true,
-    noThemes: true,
-    noContextFiles: true,
-    systemPrompt: SYSTEM_PROMPT,
-    appendSystemPrompt: [],
-  });
-}
