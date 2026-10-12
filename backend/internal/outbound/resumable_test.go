@@ -3,6 +3,7 @@ package outbound
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -467,6 +469,158 @@ func TestDownloadResumablePartialPersistsAcrossCalls(t *testing.T) {
 	}
 	if !bytes.Equal(result.Data, payload) {
 		t.Fatalf("cross-call resume bytes differ: got %d want %d", len(result.Data), len(payload))
+	}
+}
+
+func TestDownloadResumablePersistsSidecarBeforeStreaming(t *testing.T) {
+	allowLoopback(t)
+	payload := resumableTestPayload(20000)
+	partial := filepath.Join(t.TempDir(), "artifact.part")
+	var mu sync.Mutex
+	requests := 0
+	var sidecarSeen atomic.Bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests++
+		attempt := requests
+		mu.Unlock()
+		start := int64(0)
+		if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
+			parsed, ok := parseTestRange(rangeHeader, int64(len(payload)))
+			if !ok {
+				w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+				return
+			}
+			start = parsed
+		}
+		body := payload[start:]
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("ETag", `"artifact-v1"`)
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		if start > 0 {
+			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, len(payload)-1, len(payload)))
+			w.WriteHeader(http.StatusPartialContent)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+		if attempt == 1 {
+			_, _ = w.Write(body[:6000])
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			// A kill mid-transfer never runs a failure path. The sidecar must
+			// already be durable while the body is still streaming.
+			deadline := time.Now().Add(2 * time.Second)
+			for {
+				if _, err := os.Stat(partial + ".json"); err == nil {
+					sidecarSeen.Store(true)
+					break
+				}
+				if time.Now().After(deadline) {
+					break
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+			panic(http.ErrAbortHandler)
+		}
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+
+	if _, err := DownloadResumable(context.Background(), server.URL+"/artifact.png", ResumableOptions{PartialPath: partial, MaxBytes: 1 << 20, Attempts: 1}); err == nil {
+		t.Fatal("single-attempt transfer should fail on the cut")
+	}
+	if !sidecarSeen.Load() {
+		t.Fatal("sidecar was not written before the body transfer started")
+	}
+	raw, err := os.ReadFile(partial + ".json")
+	if err != nil {
+		t.Fatalf("sidecar missing after cut: %v", err)
+	}
+	var sidecar resumableSidecar
+	if err := json.Unmarshal(raw, &sidecar); err != nil || sidecar.URL != server.URL+"/artifact.png" || sidecar.Total != int64(len(payload)) {
+		t.Fatalf("sidecar = %s (err=%v)", raw, err)
+	}
+	info, err := os.Stat(partial)
+	if err != nil || info.Size() == 0 {
+		t.Fatalf("partial missing after cut: %v", err)
+	}
+
+	result, err := DownloadResumable(context.Background(), server.URL+"/artifact.png", ResumableOptions{PartialPath: partial, MaxBytes: 1 << 20, Attempts: 4})
+	if err != nil {
+		t.Fatalf("resume error = %v", err)
+	}
+	if !bytes.Equal(result.Data, payload) {
+		t.Fatalf("resume bytes differ: got %d want %d", len(result.Data), len(payload))
+	}
+	mu.Lock()
+	resumeRequests := requests
+	mu.Unlock()
+	if resumeRequests < 2 {
+		t.Fatalf("requests = %d, want at least 2", resumeRequests)
+	}
+}
+
+func TestDownloadResumableRestartsWhenRemoteTotalChanges(t *testing.T) {
+	allowLoopback(t)
+	oldPayload := resumableTestPayload(20000)
+	newPayload := resumableTestPayload(25000)
+	var mu sync.Mutex
+	requests := 0
+	ranges := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests++
+		attempt := requests
+		ranges = append(ranges, r.Header.Get("Range"))
+		mu.Unlock()
+		start := int64(0)
+		if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
+			if parsed, ok := parseTestRange(rangeHeader, int64(len(newPayload))); ok {
+				start = parsed
+			}
+		}
+		switch attempt {
+		case 1:
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("ETag", `"artifact-v1"`)
+			w.Header().Set("Content-Length", strconv.Itoa(len(oldPayload)))
+			w.WriteHeader(http.StatusOK)
+			cutTestConnection(w, oldPayload, 0.4)
+		case 2:
+			// The Range is honored from the stored offset, but the object is now
+			// a different size; appending would corrupt the artifact.
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("ETag", `"artifact-v2"`)
+			w.Header().Set("Content-Length", strconv.Itoa(len(newPayload)-int(start)))
+			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, len(newPayload)-1, len(newPayload)))
+			w.WriteHeader(http.StatusPartialContent)
+			_, _ = w.Write(newPayload[start:])
+		default:
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("ETag", `"artifact-v2"`)
+			w.Header().Set("Content-Length", strconv.Itoa(len(newPayload)))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(newPayload)
+		}
+	}))
+	defer server.Close()
+
+	partial := filepath.Join(t.TempDir(), "artifact.part")
+	result, err := DownloadResumable(context.Background(), server.URL+"/artifact.png", ResumableOptions{PartialPath: partial, MaxBytes: 1 << 20, Attempts: 4})
+	if err != nil {
+		t.Fatalf("DownloadResumable() error = %v", err)
+	}
+	if !bytes.Equal(result.Data, newPayload) {
+		t.Fatalf("restart bytes differ: got %d want %d", len(result.Data), len(newPayload))
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if requests != 3 {
+		t.Fatalf("requests = %d, want 3 (resume, mismatch, restart)", requests)
+	}
+	if ranges[0] != "" || ranges[1] == "" || ranges[2] != "" {
+		t.Fatalf("range headers = %#v, want no Range on the first and restart requests", ranges)
 	}
 }
 

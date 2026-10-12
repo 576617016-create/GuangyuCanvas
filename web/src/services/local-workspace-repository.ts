@@ -4,11 +4,9 @@ import { ApiError, http } from "@/services/api/request";
 import { beginCanvasHydration,finishCanvasHydration } from "./canvas-hydration-health";
 import { commitCanvasDocument } from "@/services/api/operations";
 import { restoreCanvasHistory } from "@/services/api/workspace-data";
-import { resourceIdFromStorageKey } from "@/services/api/resources";
 import { notifyCanvasRefresh } from "@/services/local-workspace-sync";
 import { canvasBackendSubmitPaused, CanvasBackendSubmitPausedError, CanvasStaleScopeError, handleRejectedCanvasBackendSave, isCanvasRevisionConflict, isCanvasSubmitControlError, pauseCanvasBackendSubmit, resumeCanvasBackendSubmit } from "@/services/canvas-revision-conflict";
 import { CanvasJournalError, clearCanvasOperationJournal, clearCanvasPendingProjection, loadCanvasOperationJournal, newCanvasCommitOperationId, peekCanvasOperationJournal, recordConfirmedCanvasCommit, updateCanvasOperationJournal } from "@/services/canvas-operation-journal";
-import type { Asset } from "@/stores/use-asset-store";
 import { isLocalWorkspaceMode } from "@/services/workspace-mode";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { captureUserScope, isUserScopeAbandonedError, userScopeMatches, type CapturedUserScope } from "@/lib/user-scope-guard";
@@ -180,44 +178,6 @@ function readCanvasUnconfirmedState(id: string): CanvasUnconfirmedState {
 
 export function getUnconfirmedCanvasDiagnostic(id: string) {
     return canvasUnconfirmedDiagnostic(readCanvasUnconfirmedState(id));
-}
-
-function resourceIdFromLocator(value?: string) {
-    const storageID = resourceIdFromStorageKey(value);
-    if (storageID) return storageID;
-    return value?.match(/\/api\/resources\/([^/?#]+)\/file(?:[?#]|$)/)?.[1] || "";
-}
-
-function assetResourceId(asset: Asset) {
-    if (!("storageKey" in asset.data)) return "";
-    return resourceIdFromLocator(asset.data.storageKey);
-}
-
-export function canvasGenerationCommitAssets(project: CanvasProject, assets: Asset[]) {
-    const resourceIDs = new Set<string>();
-    for (const node of project.nodes) {
-        if (node.type !== "image" && node.type !== "video" && node.type !== "audio") continue;
-        const resourceID = resourceIdFromLocator(node.metadata?.storageKey) || resourceIdFromLocator(node.metadata?.content);
-        if (resourceID) resourceIDs.add(resourceID);
-    }
-    return assets.filter((asset) => resourceIDs.has(assetResourceId(asset)));
-}
-
-export function bindCanvasGenerationCommitAssets(project: CanvasProject, assets: Asset[]): CanvasProject {
-    const assetByResource = new Map<string, string>();
-    for (const asset of assets) {
-        const resourceID = assetResourceId(asset);
-        if (resourceID) assetByResource.set(resourceID, asset.id);
-    }
-    return {
-        ...project,
-        nodes: project.nodes.map((node) => {
-            if (node.type !== "image" && node.type !== "video" && node.type !== "audio") return node;
-            const resourceID = resourceIdFromLocator(node.metadata?.storageKey) || resourceIdFromLocator(node.metadata?.content);
-            const assetId = assetByResource.get(resourceID);
-            return assetId ? { ...node, metadata: { ...node.metadata, assetId } } : node;
-        }),
-    };
 }
 
 function applyLiveCanvasProject(id: string, project: CanvasProject, allowInsert: boolean) {
@@ -443,7 +403,7 @@ function syncLocalCanvasProject(id: string, expected: CapturedUserScope): Promis
     return tail;
 }
 
-async function applyAcceptedCanvasSave(id: string, submitted: CanvasProject, saved: CanvasSaveSummary, bindAssets: Asset[] | undefined, expected: CapturedUserScope, ackOperationId?: string) {
+async function applyAcceptedCanvasSave(id: string, submitted: CanvasProject, saved: CanvasSaveSummary, expected: CapturedUserScope, ackOperationId?: string) {
     const scope = expected.userScope;
     const confirmed = saved.revision != null ? { ...submitted, revision: saved.revision, updatedAt: saved.updatedAt ?? submitted.updatedAt } : submitted;
     const pendingExternal = canvasExternalRevisionConflict(scope, id);
@@ -453,7 +413,7 @@ async function applyAcceptedCanvasSave(id: string, submitted: CanvasProject, sav
     useCanvasStore.setState((state) => ({
         projects: state.projects.map((current) => current.id === id
             ? {
-                ...(bindAssets ? bindCanvasGenerationCommitAssets(current, bindAssets) : current),
+                ...current,
                 revision: saved.revision == null ? current.revision : Math.max(current.revision ?? 0, saved.revision),
                 ...(current.updatedAt === submitted.updatedAt ? { updatedAt: saved.updatedAt } : {}),
             }
@@ -531,7 +491,7 @@ async function commitLiveCanvasDocumentUnlocked(id: string, expected: CapturedUs
     if (isInitialCanvasCreate(settled, scope)) {
         const saved = await putCanvasProjectToBackend(id, settled, `/canvas-projects/${encodeURIComponent(id)}`, settled, expected);
         if (!saved) return;
-        await applyAcceptedCanvasSave(id, settled, saved, undefined, expected);
+        await applyAcceptedCanvasSave(id, settled, saved, expected);
         return;
     }
     const queued = await updateCanvasOperationJournal(id, scope, (current) => {
@@ -576,7 +536,7 @@ async function sendCanvasDocumentCommit(id: string, operationId: string, payload
             updatedAt: result.result?.updatedAt ?? payload.document.updatedAt,
             revision: result.revision || result.result?.revision,
         };
-        await applyAcceptedCanvasSave(id, payload.document, saved, undefined, expected, operationId);
+        await applyAcceptedCanvasSave(id, payload.document, saved, expected, operationId);
     } catch (error) {
         rethrowIfAbandoned(error);
         if (isCanvasRevisionConflict(error)) {

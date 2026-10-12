@@ -13,7 +13,7 @@ import { persistCanvasDocument } from "@/services/local-workspace-repository";
 import { hydrateBackendGeneratedOutputs } from "@/services/project-asset-sync";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
-import type { CanvasAssistantSession, CanvasConnection, CanvasNodeData } from "@/types/canvas";
+import type { CanvasConnection, CanvasNodeData } from "@/types/canvas";
 
 function throwIfAborted(signal?: AbortSignal) {
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
@@ -44,51 +44,6 @@ export class CanvasBindProjectionAdoptionError extends Error {
 
 export type AdoptServerConfirmedProjection = (project: CanvasProject, scope: string, entryCapturedScope?: CapturedUserScope) => Promise<CanvasProject | undefined>;
 type PersistCanvasDocumentWithScope = (id: string, patch: { nodes?: CanvasNodeData[]; connections?: CanvasConnection[] }, entryCapturedScope?: CapturedUserScope) => Promise<void>;
-
-type CanvasGenerationLiveProjectState = Pick<CanvasProject, "nodes" | "connections" | "chatSessions" | "activeChatId">;
-type CanvasGenerationLiveProjectAdapter = {
-    read: () => CanvasGenerationLiveProjectState;
-    write: (state: CanvasGenerationLiveProjectState) => void;
-};
-
-export function createCanvasGenerationLiveProjectAdapter(input: {
-    nodesRef: { current: CanvasNodeData[] };
-    connectionsRef: { current: CanvasConnection[] };
-    chatSessionsRef: { current: CanvasAssistantSession[] };
-    activeChatIdRef: { current: string | null };
-    setNodes: Dispatch<SetStateAction<CanvasNodeData[]>>;
-    setConnections: Dispatch<SetStateAction<CanvasConnection[]>>;
-    setChatSessions: Dispatch<SetStateAction<CanvasAssistantSession[]>>;
-    setActiveChatId: Dispatch<SetStateAction<string | null>>;
-}): CanvasGenerationLiveProjectAdapter {
-    return {
-        read: () => ({ nodes: input.nodesRef.current, connections: input.connectionsRef.current, chatSessions: input.chatSessionsRef.current, activeChatId: input.activeChatIdRef.current }),
-        write: (state) => {
-            input.nodesRef.current = state.nodes;
-            input.connectionsRef.current = state.connections;
-            input.chatSessionsRef.current = state.chatSessions;
-            input.activeChatIdRef.current = state.activeChatId;
-            input.setNodes(state.nodes);
-            input.setConnections(state.connections);
-            input.setChatSessions(state.chatSessions);
-            input.setActiveChatId(state.activeChatId);
-        },
-    };
-}
-
-const canvasGenerationLiveAdapters = new Map<string, CanvasGenerationLiveProjectAdapter>();
-
-function canvasGenerationLiveAdapterKey(scope: string, projectId: string) {
-    return `${scope}\0${projectId}`;
-}
-
-export function registerCanvasGenerationLiveProject(input: { scope: string; projectId: string; adapter: CanvasGenerationLiveProjectAdapter }) {
-    const key = canvasGenerationLiveAdapterKey(input.scope, input.projectId);
-    canvasGenerationLiveAdapters.set(key, input.adapter);
-    return () => {
-        if (canvasGenerationLiveAdapters.get(key) === input.adapter) canvasGenerationLiveAdapters.delete(key);
-    };
-}
 
 export async function applyCanvasGenerationTaskNodeEffect(input: {
     projectId: string;

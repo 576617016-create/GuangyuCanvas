@@ -37,7 +37,6 @@ type ResumableResult struct {
 	Data     []byte
 	MimeType string
 	FileName string
-	FinalURL string
 }
 
 const (
@@ -174,6 +173,12 @@ func downloadResumableAttempt(ctx context.Context, parsed *url.URL, opts Resumab
 			removeResumablePartial(opts.PartialPath)
 			return ResumableResult{}, true, errors.New("远程资源断点位置不匹配")
 		}
+		// A known total that no longer matches means the remote object changed
+		// size under the same validator; appending would corrupt the artifact.
+		if sidecar != nil && sidecar.Total >= 0 && contentTotal >= 0 && sidecar.Total != contentTotal {
+			removeResumablePartial(opts.PartialPath)
+			return ResumableResult{}, true, errors.New("远程资源总大小已变化")
+		}
 		total = contentTotal
 	default:
 		if retryableHTTPStatus(response.StatusCode) {
@@ -187,6 +192,10 @@ func downloadResumableAttempt(ctx context.Context, parsed *url.URL, opts Resumab
 		removeResumablePartial(opts.PartialPath)
 		return ResumableResult{}, false, ErrResourceTooLarge
 	}
+	// Persist the sidecar before streaming. A process crash or kill mid-transfer
+	// never runs a failure path, and without the sidecar the next call would
+	// discard the partial and restart from byte zero.
+	saveResumableSidecar(opts.PartialPath, pending)
 
 	idleTimer := time.AfterFunc(idleTimeout, cancel)
 	defer idleTimer.Stop()
@@ -220,7 +229,6 @@ func downloadResumableAttempt(ctx context.Context, parsed *url.URL, opts Resumab
 			}
 			if _, writeErr := file.Write(buffer[:n]); writeErr != nil {
 				_ = file.Close()
-				saveResumableSidecar(opts.PartialPath, pending)
 				return ResumableResult{}, true, writeErr
 			}
 			written += int64(n)
@@ -236,11 +244,9 @@ func downloadResumableAttempt(ctx context.Context, parsed *url.URL, opts Resumab
 		readErr = closeErr
 	}
 	if readErr != nil {
-		saveResumableSidecar(opts.PartialPath, pending)
 		return ResumableResult{}, true, readErr
 	}
 	if total >= 0 && written != total {
-		saveResumableSidecar(opts.PartialPath, pending)
 		return ResumableResult{}, true, io.ErrUnexpectedEOF
 	}
 
@@ -257,7 +263,6 @@ func downloadResumableAttempt(ctx context.Context, parsed *url.URL, opts Resumab
 		Data:     data,
 		MimeType: mimeType,
 		FileName: resumableFileName(parsed.Path),
-		FinalURL: resumableFinalURL(response, parsed),
 	}, false, nil
 }
 
@@ -279,13 +284,6 @@ func resumableFileName(urlPath string) string {
 		return ""
 	}
 	return name
-}
-
-func resumableFinalURL(response *http.Response, fallback *url.URL) string {
-	if response != nil && response.Request != nil && response.Request.URL != nil {
-		return response.Request.URL.String()
-	}
-	return fallback.String()
 }
 
 func parseContentRange(value string) (int64, int64, bool) {
