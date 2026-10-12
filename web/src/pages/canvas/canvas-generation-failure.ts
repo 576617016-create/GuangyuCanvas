@@ -25,10 +25,17 @@ function submittedReferences(input: CanvasGenerationFailureInput) {
     }));
 }
 
+// “结果已保留、可重新加载资源”的三类码：画布版本冲突、下载失败、放回画布失败。
+const KEPT_GENERATION_RESULT_CODES = new Set(["canvas_conflict", "download_failed", "result_apply_failed"]);
+
+export function isKeptGenerationResultCode(code: string | undefined) {
+    return Boolean(code && KEPT_GENERATION_RESULT_CODES.has(code));
+}
+
 export function canvasGenerationFailureMetadata(error: unknown, input: CanvasGenerationFailureInput) {
     const failure = generationFailureMetadata(error, input.prompt, submittedReferences(input));
     if (error instanceof CanvasGenerationTargetSaveError) return { ...failure, errorDetails: error.message, generationErrorSummary: error.message };
-    return { ...failure, ...(failure.generationErrorCode === "canvas_conflict" ? { resourceReloadAvailable: true } : {}) };
+    return { ...failure, ...(isKeptGenerationResultCode(failure.generationErrorCode) ? { resourceReloadAvailable: true } : {}) };
 }
 
 export function canvasTaskFailureMetadata(task: GenerationTask, metadata?: CanvasNodeMetadata, error: unknown = { code: task.errorCode, message: task.error || (task.status === "cancelled" ? "任务已取消" : "任务失败") }) {
@@ -61,15 +68,18 @@ export function canvasGenerationRetryBlocked(metadata: CanvasNodeMetadata | unde
         if (!metadata?.failedInputFingerprint) return !metadata?.failedPromptFingerprint || metadata.failedPromptFingerprint === generationPromptFingerprint(input.prompt);
         return unchangedModeratedPrompt(metadata, input.prompt, submittedReferences(input));
     }
-    if (input) return metadata?.taskStage === "submission_unknown" || ["submission_uncertain", "timeout", "download_failed", "results_missing", "partial_success", "canvas_conflict"].includes(explainGenerationError(error).category);
+    if (input) {
+        const category = explainGenerationError(error).category;
+        return metadata?.taskStage === "submission_unknown" || isKeptGenerationResultCode(category) || ["submission_uncertain", "timeout", "results_missing", "partial_success"].includes(category);
+    }
     return true;
 }
 
 export function canvasImageGenerationHasPendingResult(node: CanvasNodeData | undefined, nodes: CanvasNodeData[]) {
-    return Boolean(node?.metadata?.resourceReloadAvailable || node?.metadata?.generationErrorCode === "canvas_conflict"
+    return Boolean(node?.metadata?.resourceReloadAvailable || isKeptGenerationResultCode(node?.metadata?.generationErrorCode)
         || node?.metadata?.batchChildIds?.some((id) => {
             const child = nodes.find((item) => item.id === id);
-            return child?.metadata?.resourceReloadAvailable || child?.metadata?.generationErrorCode === "canvas_conflict";
+            return child?.metadata?.resourceReloadAvailable || isKeptGenerationResultCode(child?.metadata?.generationErrorCode);
         }));
 }
 
@@ -78,7 +88,7 @@ export function canvasGenerationTaskNodes(nodes: CanvasNodeData[], targetNodeId:
         if (node.id !== targetNodeId) return node;
         const failed = task.status === "failed" || task.status === "cancelled";
         const hasCompletedContent = task.status === "succeeded" && Boolean(node.metadata?.content || node.metadata?.storageKey);
-        const retainRecovery = task.status === "succeeded" && !hasCompletedContent && Boolean(node.metadata?.resourceReloadAvailable || node.metadata?.generationErrorCode === "canvas_conflict");
+        const retainRecovery = task.status === "succeeded" && !hasCompletedContent && Boolean(node.metadata?.resourceReloadAvailable || isKeptGenerationResultCode(node.metadata?.generationErrorCode));
         const failure = failed ? canvasTaskFailureMetadata(task, node.metadata) : undefined;
         return {
             ...node,
@@ -87,7 +97,7 @@ export function canvasGenerationTaskNodes(nodes: CanvasNodeData[], targetNodeId:
                 ...generationTaskMetadata(task),
                 status: failed || retainRecovery ? "error" : hasCompletedContent ? "success" : "loading",
                 ...(failure || (retainRecovery
-                    ? { resourceReloadAvailable: true, generationErrorCode: "canvas_conflict", errorDetails: node.metadata?.errorDetails || "生成结果已保留，请重新加载资源" }
+                    ? { resourceReloadAvailable: true, generationErrorCode: node.metadata?.generationErrorCode, errorDetails: node.metadata?.errorDetails || "生成结果已保留，请重新加载资源" }
                     : { errorDetails: undefined, generationErrorCode: undefined, resourceReloadAvailable: undefined, failedPromptFingerprint: undefined, failedInputFingerprint: undefined })),
             },
         };

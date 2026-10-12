@@ -1,13 +1,14 @@
 import type { Dispatch, SetStateAction } from "react";
-import { CanvasGenerationDurableAckError } from "./canvas-generation-errors";
-export { CanvasGenerationDurableAckError, CanvasGenerationTargetSaveError } from "./canvas-generation-errors";
+import { CanvasGenerationDurableAckError, CanvasGenerationMaterializationError } from "./canvas-generation-errors";
+export { CanvasGenerationDurableAckError, CanvasGenerationMaterializationError, CanvasGenerationTargetSaveError } from "./canvas-generation-errors";
 
 import { parseCanvasStorageDocument, rebaseCanvasProjects, serializeCanvasStorageDocument } from "@/lib/canvas/canvas-storage-revision";
 import { localForageStorageForScope } from "@/lib/localforage-storage";
 import { getActiveUserScope } from "@/lib/user-scope";
 import { assertUserScope, captureUserScope, isUserScopeAbandonedError, UserScopeAbandonedError, userScopeMatches, type CapturedUserScope } from "@/lib/user-scope-guard";
 import { bindCanvasTaskOutput, type CanvasTaskBindReceipt } from "@/services/api/operations";
-import type { GenerationTask, GenerationTaskOutput } from "@/services/api/task-center";
+import { ApiError } from "@/services/api/request";
+import { queryGenerationTask, type GenerationTask, type GenerationTaskOutput } from "@/services/api/task-center";
 import { CanvasBackendSubmitPausedError, CanvasStaleScopeError, isCanvasRevisionConflict } from "@/services/canvas-revision-conflict";
 import { generationEffectApplied } from "@/services/generation-consumer-dedupe";
 import { attachNodeEffectKey } from "@/services/generation-task-materializer";
@@ -145,6 +146,9 @@ export async function applyCanvasGenerationTaskNodeEffect(input: {
     });
 }
 
+type RefreshGenerationTask = (taskId: string, options: { signal?: AbortSignal; expectedScope: CapturedUserScope }) => Promise<GenerationTask>;
+type SleepWithSignal = (ms: number, signal?: AbortSignal) => Promise<void>;
+
 export type BindBackendCanvasGenerationRuntime = {
     hydrateOutputs?: typeof hydrateBackendGeneratedOutputs;
     persistDocument?: PersistCanvasDocumentWithScope;
@@ -152,7 +156,98 @@ export type BindBackendCanvasGenerationRuntime = {
     adoptConfirmedProjection?: AdoptServerConfirmedProjection;
     captureScope?: () => CapturedUserScope;
     liveScope?: () => CapturedUserScope;
+    refreshTask?: RefreshGenerationTask;
+    sleep?: SleepWithSignal;
+    now?: () => number;
 };
+
+// Delivery downloads the remote artifact after the task is already succeeded.
+// While that runs the output has no materialized asset id, so binding would be
+// refused with output_not_ready. Wait for the delivered output instead of
+// reporting the transient state as a canvas conflict.
+const GENERATION_MATERIALIZATION_BUDGET_MS = 15 * 60 * 1000;
+
+const PERMANENT_MATERIALIZATION_ERROR_CODES = new Set(["resource_foreign", "asset_foreign", "unsupported_result_shape"]);
+
+function materializationPollDelay(attempt: number) {
+    const schedule = [1000, 2000, 3000, 5000];
+    return schedule[Math.min(attempt, schedule.length - 1)];
+}
+
+function sleepWithSignal(ms: number, signal?: AbortSignal) {
+    return new Promise<void>((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+            return;
+        }
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(new DOMException("The operation was aborted", "AbortError"));
+        };
+        const timer = setTimeout(() => {
+            signal?.removeEventListener("abort", onAbort);
+            resolve();
+        }, ms);
+        signal?.addEventListener("abort", onAbort, { once: true });
+    });
+}
+
+function isMediaGenerationTask(task: GenerationTask) {
+    return task.type !== "canvas_text" && task.type !== "text_replay";
+}
+
+function generationTaskOutput(task: GenerationTask, outputIndex: number): GenerationTaskOutput | undefined {
+    return task.outputs?.find((output) => output.outputIndex === outputIndex) ?? task.outputs?.[outputIndex];
+}
+
+function generationTaskOutputMaterialized(task: GenerationTask, outputIndex: number) {
+    return Boolean(generationTaskOutput(task, outputIndex)?.materializedAssetId);
+}
+
+function generationTaskOutputPermanentlyFailed(task: GenerationTask, outputIndex: number) {
+    if (task.resultState === "FAILED_PERMANENT") return true;
+    const code = generationTaskOutput(task, outputIndex)?.materializationErrorCode;
+    return Boolean(code && PERMANENT_MATERIALIZATION_ERROR_CODES.has(code));
+}
+
+function isOutputNotReadyError(error: unknown) {
+    const reason = error instanceof ApiError ? error.reason : error && typeof error === "object" && "reason" in error ? (error as { reason?: unknown }).reason : undefined;
+    return reason === "output_not_ready" || reason === "resource_not_ready";
+}
+
+async function waitForMaterializedGenerationOutput(
+    state: {
+        task: GenerationTask;
+        outputIndex: number;
+        signal?: AbortSignal;
+        expectedScope: CapturedUserScope;
+        isCurrent: () => boolean;
+        liveScope: () => CapturedUserScope;
+        refreshTask: RefreshGenerationTask;
+        sleep: SleepWithSignal;
+        now: () => number;
+        startedAt: number;
+    },
+    forceRefresh = false,
+): Promise<GenerationTask> {
+    let task = state.task;
+    let attempt = 0;
+    let skipCheck = forceRefresh;
+    for (;;) {
+        if (state.signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
+        if (!state.isCurrent()) throw new DOMException("The canvas operation was abandoned", "AbortError");
+        assertBindDispatchScope(state.expectedScope, state.liveScope);
+        if (!skipCheck) {
+            if (generationTaskOutputMaterialized(task, state.outputIndex)) return task;
+            if (generationTaskOutputPermanentlyFailed(task, state.outputIndex)) throw new CanvasGenerationMaterializationError(new Error(task.resultState || task.error || "生成结果下载失败"));
+            if (state.now() - state.startedAt > GENERATION_MATERIALIZATION_BUDGET_MS) throw new CanvasGenerationMaterializationError(new Error("生成结果下载超时"));
+        }
+        await state.sleep(materializationPollDelay(attempt), state.signal);
+        attempt += 1;
+        task = await state.refreshTask(task.id, { signal: state.signal, expectedScope: state.expectedScope });
+        skipCheck = false;
+    }
+}
 
 export async function bindBackendCanvasGenerationResult(input: {
     canvasId: string;
@@ -179,9 +274,36 @@ export async function bindBackendCanvasGenerationResult(input: {
     });
     const bindOutput = runtime.bindOutput ?? bindCanvasTaskOutput;
     const adoptConfirmedProjection = runtime.adoptConfirmedProjection ?? defaultAdoptConfirmedProjection;
+    const refreshTask = runtime.refreshTask ?? ((taskId, options) => queryGenerationTask(taskId, options));
+    const sleep = runtime.sleep ?? sleepWithSignal;
+    const now = runtime.now ?? Date.now;
+    const startedAt = now();
+
+    const waitForMaterialization = (task: GenerationTask, forceRefresh = false) =>
+        waitForMaterializedGenerationOutput(
+            {
+                task,
+                outputIndex,
+                signal: input.signal,
+                expectedScope: capturedScope,
+                isCurrent: input.isCurrent,
+                liveScope,
+                refreshTask,
+                sleep,
+                now,
+                startedAt,
+            },
+            forceRefresh,
+        );
 
     assertBindDispatchScope(capturedScope, liveScope);
-    await hydrateOutputs(input.task, input.signal, {
+    let task = input.task;
+    if (isMediaGenerationTask(task) && Boolean(task.outputs?.length) && !generationTaskOutputMaterialized(task, outputIndex)) {
+        task = await waitForMaterialization(task);
+    }
+    assertBindDispatchScope(capturedScope, liveScope);
+
+    await hydrateOutputs(task, input.signal, {
         writeAsset: (asset) => {
             if (!userScopeMatches(capturedScope, liveScope())) return;
             useAssetStore.setState((state) => (state.assets.some((item) => item.id === asset.id) ? state : { assets: [asset, ...state.assets] }));
@@ -207,15 +329,29 @@ export async function bindBackendCanvasGenerationResult(input: {
     }
     assertBindDispatchScope(capturedScope, liveScope);
 
-    const response = await bindOutput({
-        operationId: attachNodeEffectKey(input.task.id, input.nodeId, outputIndex),
-        canvasId: capturedCanvasId,
-        taskId: input.task.id,
-        nodeId: input.nodeId,
-        outputIndex,
-        signal: input.signal,
-        expectedScope: capturedScope,
-    });
+    const operationId = attachNodeEffectKey(task.id, input.nodeId, outputIndex);
+    let response: Awaited<ReturnType<typeof bindCanvasTaskOutput>>;
+    for (;;) {
+        try {
+            response = await bindOutput({
+                operationId,
+                canvasId: capturedCanvasId,
+                taskId: task.id,
+                nodeId: input.nodeId,
+                outputIndex,
+                signal: input.signal,
+                expectedScope: capturedScope,
+            });
+            break;
+        } catch (error) {
+            // 交付仍在进行时 bind 会以 output_not_ready/resource_not_ready 拒绝；
+            // 同一个 operationId 幂等，回到等待再重试，不把在途状态报成画布冲突。
+            if (!isOutputNotReadyError(error)) throw error;
+            assertBindDispatchScope(capturedScope, liveScope);
+            task = await waitForMaterialization(task, true);
+            assertBindDispatchScope(capturedScope, liveScope);
+        }
+    }
     assertBindDispatchScope(capturedScope, liveScope);
 
     const receipt = response.result ?? {};

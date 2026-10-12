@@ -16,7 +16,7 @@ import { captureUserScope, isUserScopeAbandonedError, userScopeMatches } from "@
 import { CanvasGenerationTargetSaveError } from "@/services/canvas-generation-errors";
 
 import type { CanvasGenerationExecution } from "./canvas-generation-executor-types";
-import { canvasGenerationFailureMetadata, canvasImageGenerationHasPendingResult } from "./canvas-generation-failure";
+import { canvasGenerationFailureMetadata, canvasImageGenerationHasPendingResult, isKeptGenerationResultCode } from "./canvas-generation-failure";
 
 const NODE_STATUS_LOADING = "loading" as const;
 const NODE_STATUS_SUCCESS = "success" as const;
@@ -306,7 +306,7 @@ export async function executeImageGeneration({
         });
         return;
     }
-    if (hasFailure) showError(representativeFailure?.generationErrorCode === "canvas_conflict" ? "生成结果已保留，请重新加载资源" : saveFailureMessage || (hasSuccess ? "部分图片生成失败" : "全部图片生成失败"));
+    if (hasFailure) showError(isKeptGenerationResultCode(representativeFailure?.generationErrorCode) ? "生成结果已保留，请重新加载资源" : saveFailureMessage || (hasSuccess ? "部分图片生成失败" : "全部图片生成失败"));
     setNodes((current) => {
         const next = current.map((node) => {
             if (node.id === nodeId && isConfigNode) {

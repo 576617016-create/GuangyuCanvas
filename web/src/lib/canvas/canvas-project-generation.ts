@@ -20,7 +20,7 @@ import { CanvasNodeType, type CanvasAssistantSession, type CanvasConnection, typ
 import type { ReferenceImage } from "@/types/image";
 import type { ReferenceAudio, ReferenceVideo } from "@/types/media";
 import { assertUserScope, captureUserScope, isUserScopeAbandonedError } from "@/lib/user-scope-guard";
-import { CanvasGenerationDurableAckError } from "@/services/canvas-generation-errors";
+import { CanvasGenerationDurableAckError, CanvasGenerationMaterializationError } from "@/services/canvas-generation-errors";
 import type { persistCanvasGenerationTarget } from "@/services/canvas-generation-target";
 
 export async function runBackendCanvasGenerationTask(
@@ -169,12 +169,12 @@ export async function runCanvasGenerationTaskToConsumer(
             assertUserScope(expectedScope);
         } catch (error) {
             if (isUserScopeAbandonedError(error) || (error instanceof Error && error.name === "AbortError")) throw error;
-            const cause = error instanceof CanvasGenerationDurableAckError ? error.cause : error;
+            const cause = error instanceof CanvasGenerationDurableAckError || error instanceof CanvasGenerationMaterializationError ? error.cause : error;
             dependencies.bindTask({
                 ...taskForConsumer,
                 failureDiagnostics: { ...taskForConsumer.failureDiagnostics, source: "client_result", executionResult: "completed", stage: "画布应用结果", summary: cause instanceof Error ? cause.message : "画布应用结果失败", capturedAt: new Date().toISOString() },
             });
-            throw error instanceof CanvasGenerationDurableAckError ? error : new CanvasGenerationDurableAckError(error);
+            throw error instanceof CanvasGenerationDurableAckError || error instanceof CanvasGenerationMaterializationError ? error : new CanvasGenerationDurableAckError(error);
         }
         return result;
     });
