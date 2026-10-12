@@ -3,14 +3,18 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 
 	localasset "infinite-canvas/backend/internal/asset"
 	"infinite-canvas/backend/internal/model"
+	"infinite-canvas/backend/internal/outbound"
 	"infinite-canvas/backend/internal/repository"
 	localtask "infinite-canvas/backend/internal/task"
 	"infinite-canvas/backend/internal/taskdelivery"
@@ -265,7 +269,7 @@ func (a generationDeliveryMediaAdapter) PersistRemoteArtifact(userID, mediaType,
 		return nil, fmt.Errorf("generation artifact identity is incomplete")
 	}
 	return a.service.resourceDomain().RecoverOwned(userID, identity, func() (localasset.RecoveredArtifact, error) {
-		kind, data, mimeType, fileName, width, height, durationMs, err := a.decodeGenerationArtifact(mediaType, artifactURL)
+		kind, data, mimeType, fileName, width, height, durationMs, err := a.decodeGenerationArtifact(userID, identity, mediaType, artifactURL)
 		if err != nil {
 			return localasset.RecoveredArtifact{}, err
 		}
@@ -277,7 +281,7 @@ func (a generationDeliveryMediaAdapter) PersistRemoteArtifact(userID, mediaType,
 	})
 }
 
-func (a generationDeliveryMediaAdapter) decodeGenerationArtifact(mediaType, artifactURL string) (kind string, data []byte, mimeType, fileName string, width, height int, durationMs int64, err error) {
+func (a generationDeliveryMediaAdapter) decodeGenerationArtifact(userID, identity, mediaType, artifactURL string) (kind string, data []byte, mimeType, fileName string, width, height int, durationMs int64, err error) {
 	kind = strings.TrimSpace(mediaType)
 	switch {
 	case strings.HasPrefix(artifactURL, "data:"):
@@ -296,17 +300,30 @@ func (a generationDeliveryMediaAdapter) decodeGenerationArtifact(mediaType, arti
 		}
 		return kind, data, mimeType, fileName, width, height, durationMs, nil
 	case strings.HasPrefix(artifactURL, "http://") || strings.HasPrefix(artifactURL, "https://"):
+		if _, urlErr := validateRemoteResourceURL(artifactURL); urlErr != nil {
+			return "", nil, "", "", 0, 0, 0, urlErr
+		}
 		policy, policyErr := a.service.RuntimePolicy()
 		if policyErr != nil {
 			return "", nil, "", "", 0, 0, 0, policyErr
 		}
-		payload, downloadErr := downloadRemoteResource(artifactURL, megabytes(policy.Resource.GeneratedFileMB)+1)
+		maxBytes := megabytes(policy.Resource.GeneratedFileMB) + 1
+		result, downloadErr := outbound.DownloadResumable(context.Background(), artifactURL, outbound.ResumableOptions{
+			PartialPath: a.artifactDownloadPartialPath(userID, identity),
+			MaxBytes:    maxBytes,
+		})
 		if downloadErr != nil {
+			if errors.Is(downloadErr, outbound.ErrResourceTooLarge) {
+				return "", nil, "", "", 0, 0, 0, BadAuthRequest(fmt.Sprintf("远程资源必须小于 %s", formatStorageLimit(maxBytes)))
+			}
 			return "", nil, "", "", 0, 0, 0, downloadErr
 		}
-		mimeType, data = payload.mimeType, payload.data
+		mimeType, data = result.MimeType, result.Data
 		kind = normalizeResourceKind(kind, mimeType)
-		fileName = payload.fileName
+		fileName = result.FileName
+		if fileName == "" {
+			fileName = "resource." + extensionFromMimeType(mimeType)
+		}
 		if kind == "image" {
 			width, height = imageDimensions(data)
 		}
@@ -326,6 +343,14 @@ func (a generationDeliveryMediaAdapter) decodeGenerationArtifact(mediaType, arti
 	default:
 		return "", nil, "", "", 0, 0, 0, fmt.Errorf("unsupported generation artifact %q", artifactURL)
 	}
+}
+
+// artifactDownloadPartialPath keeps the resumable .part file per delivery
+// identity so the 5s recovery loop and the success coordinator resume the same
+// transfer instead of racing from byte zero.
+func (a generationDeliveryMediaAdapter) artifactDownloadPartialPath(userID, identity string) string {
+	sum := sha256.Sum256([]byte(userID + "\x00" + identity))
+	return filepath.Join(a.service.dataDir, "cache", "artifact-downloads", hex.EncodeToString(sum[:])+".part")
 }
 
 // generationLocalArtifactPresent checks the same FileStore path storeResourceObject
