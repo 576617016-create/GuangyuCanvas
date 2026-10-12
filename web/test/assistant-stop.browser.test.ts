@@ -49,7 +49,7 @@ beforeAll(async () => {
         if (pathname.endsWith("/assistant/cancel")) { cancelled = true; cancelRequests++; return ok({ accepted: true }); }
         if (pathname.endsWith("/assistant/chat")) {
             chatRequests++;
-            if (rejectChat) return Response.json({ code: 413, reason: "body_too_large" }, { status: 413, headers: { "X-光宇无限画布-Turn-Admission": "rejected" } });
+            if (rejectChat) return Response.json({ code: 413, reason: "body_too_large" }, { status: 413, headers: { "X-Beeftv-Turn-Admission": "rejected" } });
             return new Response(new ReadableStream({ start(controller) {
                 controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: "text_delta", delta: "两个草案已创建。" }) + "\n"));
             } }), { headers: { "content-type": "application/x-ndjson" } });

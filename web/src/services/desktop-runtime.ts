@@ -38,9 +38,9 @@ export type DesktopRuntimeBinding = {
     DownloadUpdate?: () => Promise<DesktopUpdateState>;
     InstallUpdate?: () => Promise<void>;
     ConfirmUpdateStartup?: () => Promise<void>;
-    Open光宇无限画布X?: () => Promise<void>;
-    Open光宇无限画布Website?: () => Promise<void>;
-    Open光宇无限画布GitHub?: () => Promise<void>;
+    OpenBeefTVX?: () => Promise<void>;
+    OpenBeefTVWebsite?: () => Promise<void>;
+    OpenBeefTVGitHub?: () => Promise<void>;
 };
 
 export type DesktopStorageUsage = { dataDir: string; usedBytes: number; freeBytes: number; previousDir?: string; previousBytes?: number };

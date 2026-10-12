@@ -6,7 +6,7 @@ import type { ChangeEvent } from "react";
 
 import type { ChannelHeader } from "@/stores/use-config-store";
 
-const DEFAULT_USER_AGENT = "光宇无限画布/1.0 (+https://github.com/glanderness/光宇无限画布)";
+const DEFAULT_USER_AGENT = "GuangyuCanvas/1.0 (+https://github.com/576617016-create/GuangyuCanvas)";
 const MAX_HEADER_COUNT = 32;
 const BLOCKED_HEADERS = new Set([
     "authorization",

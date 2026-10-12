@@ -61,7 +61,7 @@ beforeEach(() => {
     previousFetch = globalThis.fetch;
     previousBaseURL = requestRuntime.apiBaseURL;
     previousDesktopToken = apiClient.defaults.headers.common["X-Desktop-Token"];
-    previousBootstrapToken = apiClient.defaults.headers.common["X-光宇无限画布-UI-Bootstrap"];
+    previousBootstrapToken = apiClient.defaults.headers.common["X-Beeftv-UI-Bootstrap"];
     configureApiRuntime("http://127.0.0.1:54321/api", "");
     httpGetSpy = spyOn(http, "get").mockImplementation(async () => ({ available: true }) as never);
     httpPostSpy = spyOn(http, "post").mockImplementation(async () => {
@@ -168,7 +168,7 @@ describe("创作助手回合流边界", () => {
     test("明确的403接纳拒绝清除旧凭据但绝不自动重放消息", async () => {
         let issued = 0;
         sessionResponse = () => new Response(JSON.stringify({ data: { token: `token-${++issued}`, expiresAt: new Date(Date.now() + 1_800_000).toISOString() } }));
-        chatResponse = () => new Response(JSON.stringify({ reason: "unauthenticated" }), { status: 403, headers: { "X-光宇无限画布-Turn-Admission": "rejected" } });
+        chatResponse = () => new Response(JSON.stringify({ reason: "unauthenticated" }), { status: 403, headers: { "X-Beeftv-Turn-Admission": "rejected" } });
         await expect(streamAgentChat("c1", "hi", {})).rejects.toBeInstanceOf(AgentChatNotAdmittedError);
         expect(requests.filter((r) => r.url.endsWith("/chat"))).toHaveLength(1);
         expect(await ensureAgentUiSession()).toBe("token-2");
@@ -194,7 +194,7 @@ describe("创作助手回合流边界", () => {
         await dispatched;
         resetAgentUiSession();
         expect(await ensureAgentUiSession()).toBe("token-2");
-        rejectResponse(new Response(JSON.stringify({ reason: "unauthenticated" }), { status: 403, headers: { "X-光宇无限画布-Turn-Admission": "rejected" } }));
+        rejectResponse(new Response(JSON.stringify({ reason: "unauthenticated" }), { status: 403, headers: { "X-Beeftv-Turn-Admission": "rejected" } }));
         expect(await oldRequest).toBeInstanceOf(AgentChatNotAdmittedError);
         expect(await ensureAgentUiSession()).toBe("token-2");
         expect(issued).toBe(2);
@@ -202,7 +202,7 @@ describe("创作助手回合流边界", () => {
 
     test("没有明确拒绝标记的HTTP错误和已接纳断流继续视为结果未知", async () => {
         for (const admission of [null, "unknown", "admitted"]) {
-            chatResponse = () => new Response(JSON.stringify({ reason: "host_unreachable" }), { status: 503, headers: admission ? { "X-光宇无限画布-Turn-Admission": admission } : {} });
+            chatResponse = () => new Response(JSON.stringify({ reason: "host_unreachable" }), { status: 503, headers: admission ? { "X-Beeftv-Turn-Admission": admission } : {} });
             const error = await streamAgentChat("c1", "hi", {}).catch((e: unknown) => e);
             expect(error).toBeInstanceOf(Error);
             expect(error).not.toBeInstanceOf(AgentChatNotAdmittedError);

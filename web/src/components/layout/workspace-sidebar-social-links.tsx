@@ -8,19 +8,19 @@ const X_ICON_PATH = "M18.901 2H22l-6.77 7.737L23.196 22h-6.238l-4.886-7.434L5.56
 
 export function WorkspaceSidebarSocialLinks() {
     const openGitHub = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布GitHub;
+        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVGitHub;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
     };
     const openWebsite = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布Website;
+        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVWebsite;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
     };
     const openX = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布X;
+        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVX;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
@@ -60,7 +60,7 @@ export function WorkspaceSidebarSocialLinks() {
                 rootClassName="app-workspace-github-tooltip"
                 title={<span className="app-workspace-github-hint">点点 star <Star aria-hidden="true" /></span>}
             >
-                <a className="app-workspace-social-action" href="https://github.com/glanderness/光宇无限画布" target="_blank" rel="noopener noreferrer" aria-label="打开 光宇无限画布 GitHub 仓库" onClick={openGitHub}>
+                <a className="app-workspace-social-action" href="https://github.com/576617016-create/GuangyuCanvas" target="_blank" rel="noopener noreferrer" aria-label="打开 光宇无限画布 GitHub 仓库" onClick={openGitHub}>
                     <Github aria-hidden="true" />
                 </a>
             </Tooltip>
