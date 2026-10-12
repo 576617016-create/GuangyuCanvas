@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Builds the same desktop source as scripts/build-beeftv-release.sh, packages
-    official *.beeftv-plugin archives next to BeefTV.exe, and fails loudly when
+    official *.beeftv-plugin archives next to 光宇无限画布.exe, and fails loudly when
     CGO/go-sqlite3 compiler prerequisites are missing.
 
     This script does not install compilers, Bun, Go, Git, WebView2, or NSIS.
@@ -21,7 +21,7 @@
     - Go 1.25+ Windows CGO DWARF 5 / binutils 2.37+: https://go.dev/wiki/MinimumRequirements#cgo
 
 .OUTPUTS
-    backend\cmd\desktop\build\bin\BeefTV.exe
+    backend\cmd\desktop\build\bin\光宇无限画布.exe
     backend\cmd\desktop\build\bin\plugin-packages\*.beeftv-plugin
 #>
 [CmdletBinding()]
@@ -41,7 +41,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $desktopDir = Join-Path $repoRoot "backend\cmd\desktop"
 $pluginSourceDir = Join-Path $repoRoot "plugin-packages"
 $binDir = Join-Path $desktopDir "build\bin"
-$exePath = Join-Path $binDir "BeefTV.exe"
+$exePath = Join-Path $binDir "光宇无限画布.exe"
 $pluginResourceDir = Join-Path $binDir "plugin-packages"
 $versionFile = Join-Path $repoRoot "VERSION"
 $wailsModule = "github.com/wailsapp/wails/v2/cmd/wails@v2.16.0"
@@ -390,7 +390,7 @@ if (-not [string]::IsNullOrWhiteSpace($env:BEEFTV_EXTRA_LDFLAGS)) {
     $ldflags = "$ldflags $($env:BEEFTV_EXTRA_LDFLAGS.Trim())"
 }
 
-Write-Step "Building BeefTV $versionValue ($commitValue) for windows/amd64"
+Write-Step "Building 光宇无限画布 $versionValue ($commitValue) for windows/amd64"
 $appIconSource = Join-Path $repoRoot "assets\app-icon.png"
 $buildDir = Join-Path $desktopDir "build"
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
@@ -444,11 +444,11 @@ Invoke-NativeExecutable -FilePath "bun" -ArgumentList @((Join-Path $repoRoot "sc
 # Cursor) connect through it with their own client credential, so the installed
 # app must carry it; it is not expected on the user PATH.
 #
-# It goes in a cli subdirectory, not directly next to BeefTV.exe: Windows file
-# names are case-insensitive, so beeftv.exe beside BeefTV.exe is the same name.
+# It goes in a cli subdirectory, not directly next to 光宇无限画布.exe: Windows file
+# names are case-insensitive, so 光宇无限画布-cli.exe beside 光宇无限画布.exe is the same name.
 $cliDir = Join-Path $binDir "cli"
 New-Item -ItemType Directory -Force -Path $cliDir | Out-Null
-$cliPath = Join-Path $cliDir "beeftv.exe"
+$cliPath = Join-Path $cliDir "光宇无限画布-cli.exe"
 Push-Location (Join-Path $repoRoot "backend")
 try {
     [void](Invoke-NativeExecutable -FilePath "go" -ArgumentList @("build", "-trimpath", "-ldflags", $ldflags, "-o", $cliPath, "./cmd/beeftv") -FailureMessage "beeftv CLI build failed")
@@ -463,7 +463,7 @@ if (-not (Test-Path -LiteralPath $cliPath -PathType Leaf)) {
 Write-Host "Release executable: $exePath"
 Write-Host "Bundled agent CLI: $cliPath"
 Write-Host "Official plugins: $pluginResourceDir ($($copied.Count) packages)"
-Write-Host "Launch data directory (unless CANVAS_DESKTOP_DATA_DIR is set): %AppData%\BeefTV"
+Write-Host "Launch data directory (unless CANVAS_DESKTOP_DATA_DIR is set): %AppData%\光宇无限画布"
 Write-Host "Official plugins are loaded from the executable directory, not from the process working directory."
 Write-Host "WebView2 is required at runtime; Windows 11 usually already has it. Missing runtimes use Wails -webview2 download. See https://wails.io/docs/guides/windows"
-Write-Host "This machine still has to launch BeefTV.exe before the Windows build is accepted. NSIS installer output is not produced."
+Write-Host "This machine still has to launch 光宇无限画布.exe before the Windows build is accepted. NSIS installer output is not produced."

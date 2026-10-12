@@ -5,8 +5,8 @@ import { applySkinTheme, DEFAULT_CLASSIC_SKIN, normalizeSkinDefinition } from "@
 
 export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
     schemaVersion: 7,
-    brandName: "BeefTV",
-    brandSlug: "beeftv",
+    brandName: "光宇无限画布",
+    brandSlug: "guangyu",
     authHeroTitle: "让一个故事，\n从文字走向银幕。",
     authHeroDescription: "",
     logoUrl: "/beef-logo.png",
@@ -17,10 +17,10 @@ export const DEFAULT_PUBLIC_APPEARANCE: PublicAppearance = {
     authVideoAutoplay: true,
     skinId: "classic",
     activeSkin: DEFAULT_CLASSIC_SKIN,
-    seoTitle: "BeefTV",
-    seoDescription: "BeefTV，本地优先的开源 AI 视频创作工作台。",
+    seoTitle: "光宇无限画布",
+    seoDescription: "光宇无限画布，本地优先的开源 AI 视频创作工作台。",
     seoKeywords: "",
-    footerCopyright: `© ${new Date().getFullYear()} BeefTV. Open source video studio.`,
+    footerCopyright: `© ${new Date().getFullYear()} 光宇无限画布. Open source video studio.`,
     icpFilingEnabled: false,
     icpFilingNumber: "",
     logoConfigured: false,
@@ -157,7 +157,7 @@ export function appearanceLogoURL(appearance: PublicAppearance, theme: "light" |
 }
 
 export function brandStudioLabel(appearance: PublicAppearance) {
-    if (appearance.brandName === DEFAULT_PUBLIC_APPEARANCE.brandName && appearance.brandSlug === DEFAULT_PUBLIC_APPEARANCE.brandSlug) return "BEEF CREATIVE STUDIO";
+    if (appearance.brandName === DEFAULT_PUBLIC_APPEARANCE.brandName && appearance.brandSlug === DEFAULT_PUBLIC_APPEARANCE.brandSlug) return "光宇无限画布";
     return appearance.brandSlug.replace(/-+/g, " ").toLocaleUpperCase();
 }
 

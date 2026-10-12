@@ -42,7 +42,7 @@ export function AgentConnectPanel({ kind, onClose, onConfigured, verifiedClientI
         <div className="agent-connect-panel" aria-label={`连接 ${agentClientKindLabel(kind || "other")}`}>
             {registration && setup ? (
                 <div className="flex flex-col gap-3 py-1">
-                    <p role="status" className="text-sm">{verified ? "已检测到该工具访问 BeefTV，连接验证成功。" : "等待工具连接。请运行下方命令或添加配置，再在工具中启用 BeefTV。"}</p>
+                    <p role="status" className="text-sm">{verified ? "已检测到该工具访问 光宇无限画布，连接验证成功。" : "等待工具连接。请运行下方命令或添加配置，再在工具中启用 光宇无限画布。"}</p>
                     <p className="text-xs leading-5 text-foreground/60">{setup.instruction}</p>
                     <pre className="max-h-64 overflow-auto rounded-md bg-surface-active px-3.5 py-3 text-[12px] leading-5 font-mono whitespace-pre-wrap break-all text-foreground/85">{setup.text}</pre>
                     <div className="flex items-center justify-between gap-3">
@@ -54,7 +54,7 @@ export function AgentConnectPanel({ kind, onClose, onConfigured, verifiedClientI
                 <p className="py-2 text-xs leading-5 text-foreground/60">没有拿到接入内容，请断开后重新连接。</p>
             ) : (
                 <div className="flex flex-col gap-3 py-1">
-                    <p className="text-xs leading-5 text-foreground/60">连接后可使用 BeefTV 的全部创作工具。每次操作的审批由 {agentClientKindLabel(kind || "other")} 负责。</p>
+                    <p className="text-xs leading-5 text-foreground/60">连接后可使用 光宇无限画布 的全部创作工具。每次操作的审批由 {agentClientKindLabel(kind || "other")} 负责。</p>
                 </div>
             )}
             <div className="mt-4 flex justify-end gap-2">

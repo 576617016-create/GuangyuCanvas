@@ -36,7 +36,7 @@ export function CanvasTranscriptionControls({ projectId, nodeId, resourceId, dis
         try {
             const result = await getTranscriptionModels({ expectedScope: captureUserScope() });
             if (!mountedRef.current || request !== requestRef.current) return;
-            setModels(result.map(item => ({ value: item.id, label: `${item.displayName || item.id} · BeefTV` })));
+            setModels(result.map(item => ({ value: item.id, label: `${item.displayName || item.id} · 光宇无限画布` })));
             if (!result.length) setStatus("当前连接没有可用的云端转写模型");
         } catch (error) {
             if (mountedRef.current && request === requestRef.current && !isUserScopeAbandonedError(error)) setStatus(error instanceof Error ? error.message : "读取转写模型失败");
@@ -82,7 +82,7 @@ export function CanvasTranscriptionControls({ projectId, nodeId, resourceId, dis
         <div className="flex flex-wrap items-center gap-2">
             <Select aria-label="转写模型" size="small" className="min-w-[200px] flex-1" value={model} onChange={setModel} disabled={disabled || loading}
                 options={[{ value: "", label: "本地 whisper.cpp" }, ...models]} />
-            <Button size="small" disabled={disabled} loading={loading} onClick={() => void refresh()}>读取 BeefTV 转写模型</Button>
+            <Button size="small" disabled={disabled} loading={loading} onClick={() => void refresh()}>读取 光宇无限画布 转写模型</Button>
             <Button size="small" disabled={disabled || !resourceId || loading} loading={running} onClick={() => void transcribe()}>自动转写字幕</Button>
         </div>
         <p className="text-xs opacity-60">{!resourceId ? "素材上传完成后即可自动转写。" : model ? "音频将上传到云端识别，并按所选模型计费；转写结果会替换当前字幕草稿。" : "使用本地 whisper.cpp 识别，音视频不出本机；转写结果会替换当前字幕草稿。"}</p>

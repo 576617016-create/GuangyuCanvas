@@ -33,7 +33,7 @@ describe("public release boundary", () => {
         const destinationParent = temporaryDirectory("beeftv-public-destination-");
         const destination = join(destinationParent, "snapshot");
 
-        fixtureFile(source, "README.md", "# BeefTV\n");
+        fixtureFile(source, "README.md", "# 光宇无限画布\n");
         fixtureFile(source, "LICENSE", "MIT\n");
         fixtureFile(source, "NOTICE", "Third-party notices\n");
         fixtureFile(source, "backend/go.mod", "module example.invalid/beeftv/backend\n");
@@ -53,7 +53,7 @@ describe("public release boundary", () => {
         fixtureFile(source, "backend/desktop");
         fixtureFile(source, "backend/cmd/desktop/frontend/dist/.gitkeep", "");
         fixtureFile(source, "backend/cmd/desktop/frontend/dist/index.html", "generated");
-        fixtureFile(source, "backend/cmd/desktop/build/bin/BeefTV.app/Contents/MacOS/BeefTV");
+        fixtureFile(source, "backend/cmd/desktop/build/bin/光宇无限画布.app/Contents/MacOS/光宇无限画布");
         fixtureFile(source, "debug.log");
         fixtureFile(source, "release.dmg");
         fixtureFile(source, "plugin-packages/example.beeftv-plugin");
@@ -87,7 +87,7 @@ describe("public release boundary", () => {
         const destinationParent = temporaryDirectory("beeftv-public-audit-destination-");
         const destination = join(destinationParent, "snapshot");
 
-        fixtureFile(source, "README.md", "# BeefTV\n");
+        fixtureFile(source, "README.md", "# 光宇无限画布\n");
         fixtureFile(source, "LICENSE", "MIT\n");
         fixtureFile(source, "NOTICE", "Third-party notices\n");
         fixtureFile(source, "backend/go.mod", "module example.invalid/beeftv/backend\n");
@@ -108,7 +108,7 @@ describe("public release boundary", () => {
     test("export refuses to merge into an existing destination", () => {
         const source = temporaryDirectory("beeftv-public-existing-source-");
         const destination = temporaryDirectory("beeftv-public-existing-destination-");
-        fixtureFile(source, "README.md", "# BeefTV\n");
+        fixtureFile(source, "README.md", "# 光宇无限画布\n");
 
         const result = spawnSync("sh", [exportScript, source, destination], { encoding: "utf8" });
 

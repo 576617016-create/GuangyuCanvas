@@ -8,19 +8,19 @@ const X_ICON_PATH = "M18.901 2H22l-6.77 7.737L23.196 22h-6.238l-4.886-7.434L5.56
 
 export function WorkspaceSidebarSocialLinks() {
     const openGitHub = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVGitHub;
+        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布GitHub;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
     };
     const openWebsite = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVWebsite;
+        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布Website;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
     };
     const openX = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-        const openInBrowser = getDesktopAppBinding()?.OpenBeefTVX;
+        const openInBrowser = getDesktopAppBinding()?.Open光宇无限画布X;
         if (!openInBrowser) return;
         event.preventDefault();
         await openInBrowser();
@@ -39,17 +39,17 @@ export function WorkspaceSidebarSocialLinks() {
                     <div className="app-workspace-donation-content">
                         <p>
                             如果觉得好用的话，欢迎捐赠支持我们！<br />
-                            你的支持是我们不断优化迭代BeefTV的最大动力
+                            你的支持是我们不断优化迭代光宇无限画布的最大动力
                         </p>
                         <img src="/beeftv-donation-qr.png" width={294} height={286} alt="博文斯科技官方收款二维码" />
                     </div>
                 }
             >
-                <button type="button" className="app-workspace-social-action" aria-label="捐赠支持 BeefTV">
+                <button type="button" className="app-workspace-social-action" aria-label="捐赠支持 光宇无限画布">
                     <HandHeart aria-hidden="true" />
                 </button>
             </Popover>
-            <a className="app-workspace-social-action" href="https://beeftv.app/" target="_blank" rel="noopener noreferrer" aria-label="打开 BeefTV 官网" title="BeefTV 官网" onClick={openWebsite}>
+            <a className="app-workspace-social-action" href="https://beeftv.app/" target="_blank" rel="noopener noreferrer" aria-label="打开 光宇无限画布 官网" title="光宇无限画布 官网" onClick={openWebsite}>
                 <Globe aria-hidden="true" />
             </a>
             <Tooltip
@@ -60,7 +60,7 @@ export function WorkspaceSidebarSocialLinks() {
                 rootClassName="app-workspace-github-tooltip"
                 title={<span className="app-workspace-github-hint">点点 star <Star aria-hidden="true" /></span>}
             >
-                <a className="app-workspace-social-action" href="https://github.com/glanderness/BeefTV" target="_blank" rel="noopener noreferrer" aria-label="打开 BeefTV GitHub 仓库" onClick={openGitHub}>
+                <a className="app-workspace-social-action" href="https://github.com/glanderness/光宇无限画布" target="_blank" rel="noopener noreferrer" aria-label="打开 光宇无限画布 GitHub 仓库" onClick={openGitHub}>
                     <Github aria-hidden="true" />
                 </a>
             </Tooltip>

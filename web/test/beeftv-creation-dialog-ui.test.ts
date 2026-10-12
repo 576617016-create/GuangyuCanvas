@@ -5,7 +5,7 @@ const composer = await Bun.file(new URL("../src/pages/create/creation-workspace.
 const styles = await Bun.file(new URL("../src/pages/create/creation-product.css", import.meta.url)).text();
 const creationTypes = await Bun.file(new URL("../src/pages/create/creation-types.ts", import.meta.url)).text();
 
-test("BeefTV creation dialog uses the simplified composer controls", () => {
+test("光宇无限画布 creation dialog uses the simplified composer controls", () => {
     expect(page).toContain("和 {brandName} 一起创作");
     expect(page).not.toContain("Agent 一起创作");
     expect(page).not.toContain("从一个画面、一个角色或一句话开始");

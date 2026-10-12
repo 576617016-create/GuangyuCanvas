@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">BeefTV 启动画面动效预览</title>
-  <desc id="desc">黑色背景，白色 BeefTV 标志，光带从左向右掠过标志。</desc>
+  <title id="title">光宇无限画布 启动画面动效预览</title>
+  <desc id="desc">黑色背景，白色 光宇无限画布 标志，光带从左向右掠过标志。</desc>
   <defs>
     <radialGradient id="surface" cx="50%" cy="48%" r="72%">
       <stop offset="0" stop-color="#151515"/>

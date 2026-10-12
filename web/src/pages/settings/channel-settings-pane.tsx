@@ -329,13 +329,13 @@ export function ChannelSettingsPane({ onOpenDiagnostics, onOpenModels, onOpenRun
                                     <div className="min-w-0 flex-1 basis-52">
                                         <h3 id={`channel-${channel.id}-title`} className="flex items-center gap-2 text-sm font-semibold">
                                             {builtinBeefAPI ? <img src={beefTVAppIcon} alt="" className="size-5 shrink-0 object-contain" draggable={false} /> : <ModelLogo icon={MODEL_SERVICE_PRESETS.find((preset) => preset.id === servicePresetFor(channel))?.icon} size={20} />}
-                                            {builtinBeefAPI ? "BeefTV" : channel.name || "未命名渠道"}
+                                            {builtinBeefAPI ? "光宇无限画布" : channel.name || "未命名渠道"}
                                         </h3>
                                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/55">
                                             {builtinBeefAPI ? (
                                                 <>
                                                     <span>已保存 {channel.models.length} 个模型</span>
-                                                    <span>BeefTV 官方算力渠道，一键连接、开箱即用</span>
+                                                    <span>光宇无限画布 官方算力渠道，一键连接、开箱即用</span>
                                                 </>
                                             ) : (
                                                 <span>{channelProtocolLabel(channel)} · 已保存 {channel.models.length} 个模型</span>
@@ -354,7 +354,7 @@ export function ChannelSettingsPane({ onOpenDiagnostics, onOpenModels, onOpenRun
                                                 onRetry={() => void runBeefAction(retryBeefConnection, "无法重新连接")}
                                                 onDisconnect={() => void runBeefAction(disconnectBeefAPIConnection, "无法断开连接")}
                                                 onWallet={() => {
-                                                    void openBeefAPIWallet().catch((error) => message.error(error instanceof Error ? error.message : "无法打开 BeefTV 账户"));
+                                                    void openBeefAPIWallet().catch((error) => message.error(error instanceof Error ? error.message : "无法打开 光宇无限画布 账户"));
                                                 }}
                                             />
                                         ) : null}
@@ -693,7 +693,7 @@ export function BeefAPIConnectionActions({
         return (
             <>
                 <Button className={buttonClass} size="small" onClick={onWallet}>
-                    打开 BeefTV 账户
+                    打开 光宇无限画布 账户
                 </Button>
                 <Button className={buttonClass} size="small" loading={busy} onClick={onDisconnect}>
                     断开连接
@@ -722,7 +722,7 @@ export function BeefAPIConnectionActions({
     }
     return (
         <Button className={buttonClass} size="small" type="primary" loading={busy} onClick={onConnect}>
-            连接 BeefTV
+            连接 光宇无限画布
         </Button>
     );
 }
@@ -789,7 +789,7 @@ function channelConnectionError(channel: ModelChannel, connection?: BeefAPIConne
     }
     if (isBuiltinBeefAPIChannel(channel)) {
         if (connection?.state === "connected" || channelHasManagedBeefAPICredential(channel)) return "";
-        return "请先连接 BeefTV";
+        return "请先连接 光宇无限画布";
     }
     if (!channelHasGenerationCredential(channel)) return "请填写 API Key / Access Key";
     if (requiresSecretKey(channel) && !channel.secretKey?.trim()) return "当前协议需要填写 Secret Key";

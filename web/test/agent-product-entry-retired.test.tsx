@@ -99,7 +99,7 @@ describe("旧内置 Agent 页面入口退场", () => {
                 <HomeDashboard projects={[]} loading={false} error={false} onRetry={() => {}} />
             </MemoryRouter>,
         );
-        expect(markup).not.toContain("BeefTV Agent");
+        expect(markup).not.toContain("光宇无限画布 Agent");
         expect(markup).not.toContain('data-mode="agent"');
         expect(markup).toContain("新建画布创作");
         for (const [label, href] of [
@@ -130,7 +130,7 @@ describe("旧内置 Agent 页面入口退场", () => {
         // 侧栏导航依赖 Vite define（__APP_VERSION__）渲染，因此这里只做文案回归守卫；
         // 真实浏览器验收在实施报告中记录（.local/browser-check/check.mjs）。
         const sidebar = readFileSync(resolve(root, "src/components/layout/workspace-sidebar-nav.tsx"), "utf8");
-        expect(sidebar).not.toContain("BeefTV Agent");
+        expect(sidebar).not.toContain("光宇无限画布 Agent");
         const topBar = readFileSync(resolve(root, "src/components/layout/workspace-top-bar.tsx"), "utf8");
         expect(topBar).not.toContain("短剧 Agent");
         const projectsPage = readFileSync(resolve(root, "src/pages/projects/index.tsx"), "utf8");

@@ -1,6 +1,6 @@
 # 本地优先架构
 
-BeefTV 的桌面构建是一个单用户、本地优先工作区。桌面端只启动一个 Wails 进程：Wails 承载前端，Go runtime 提供 loopback API 和 SQLite/本地资源目录。
+光宇无限画布 的桌面构建是一个单用户、本地优先工作区。桌面端只启动一个 Wails 进程：Wails 承载前端，Go runtime 提供 loopback API 和 SQLite/本地资源目录。
 
 ## 运行边界
 

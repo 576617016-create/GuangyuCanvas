@@ -63,7 +63,7 @@ test("connected account can disconnect and expose the authorization action again
     try {
         await page.goto(new URL("/settings", server.url).toString());
         await page.getByRole("button", { name: "断开连接", exact: true }).click();
-        const connect = page.locator("button:not(.ant-btn-loading)").filter({ hasText: /^连接 BeefTV$/ });
+        const connect = page.locator("button:not(.ant-btn-loading)").filter({ hasText: /^连接 光宇无限画布$/ });
         await connect.waitFor({ timeout: 5000 });
         expect(disconnectCalls).toBe(1);
         expect(connectionState).toBe("disconnected");
@@ -74,7 +74,7 @@ test("connected account can disconnect and expose the authorization action again
 test("settings retries failed connected catalog read and retains authorization default intent", async () => {
     connectionState = "disconnected"; catalogReadFailures = 0;
     const page = await browser.newPage(); await page.goto(new URL("/settings", server.url).toString());
-    await page.getByRole("button", { name: "连接 BeefTV", exact: true }).click();
+    await page.getByRole("button", { name: "连接 光宇无限画布", exact: true }).click();
     const retry = page.getByRole("button", { name: "重试更新模型列表" });
     await retry.waitFor(); await retry.click();
     await retry.waitFor({ state: "hidden" });

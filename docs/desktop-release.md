@@ -1,4 +1,4 @@
-# BeefTV 桌面发布
+# 光宇无限画布 桌面发布
 
 生产桌面包使用仓库根目录的 `VERSION` 作为唯一版本源。发布脚本会把版本号、当前 Git 提交和 UTC 构建时间同时注入前端与 Go 后端，并生成不依赖 Vite 开发服务器的 Wails 应用包。
 
@@ -33,14 +33,14 @@ BEEFTV_GO_DIR=/tmp/beeftv-go.rpIfVN/go ./scripts/build-beeftv-release.sh
 产物：
 
 ```text
-backend/cmd/desktop/build/bin/BeefTV.app
-backend/cmd/desktop/build/bin/BeefTV.app/Contents/Resources/plugin-packages/*.beeftv-plugin
+backend/cmd/desktop/build/bin/光宇无限画布.app
+backend/cmd/desktop/build/bin/光宇无限画布.app/Contents/Resources/plugin-packages/*.beeftv-plugin
 ```
 
 验收重点：
 
-- `backend/cmd/desktop/build/bin/BeefTV.app` 存在；
-- Wails 将 `frontend/dist` 编译进应用二进制；应用包内应存在 `Contents/MacOS/BeefTV`，并由构建日志确认完成 `Compiling frontend` 与 `Packaging application`；
+- `backend/cmd/desktop/build/bin/光宇无限画布.app` 存在；
+- Wails 将 `frontend/dist` 编译进应用二进制；应用包内应存在 `Contents/MacOS/光宇无限画布`，并由构建日志确认完成 `Compiling frontend` 与 `Packaging application`；
 - macOS `Info.plist` 的 `CFBundleShortVersionString` 和 `CFBundleVersion` 与根目录 `VERSION`（去掉 `v` 前缀）一致；
 - `/api/health/live` 与 `/api/system/version` 返回的版本信息来自同一份发布元数据；
 - 发布启动不需要 `127.0.0.1:3000` 的 Vite 开发服务器。
@@ -56,11 +56,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-beeftv-windo
 产物：
 
 ```text
-backend\cmd\desktop\build\bin\BeefTV.exe
+backend\cmd\desktop\build\bin\光宇无限画布.exe
 backend\cmd\desktop\build\bin\plugin-packages\*.beeftv-plugin
 ```
 
-官方插件必须和 `BeefTV.exe` 放在同一目录下的 `plugin-packages\`。从开始菜单、快捷方式或资源管理器启动时，工作目录不一定是仓库或 exe 所在目录；应用按可执行文件位置查找官方插件，不依赖当前工作目录。
+官方插件必须和 `光宇无限画布.exe` 放在同一目录下的 `plugin-packages\`。从开始菜单、快捷方式或资源管理器启动时，工作目录不一定是仓库或 exe 所在目录；应用按可执行文件位置查找官方插件，不依赖当前工作目录。
 
 ### 本机前提
 
@@ -84,18 +84,18 @@ backend\cmd\desktop\build\bin\plugin-packages\*.beeftv-plugin
 
 构建使用与 macOS 相同的 Wails 模块 `github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`，并显式传入 `-platform windows/amd64`、`-webview2 download`。Wails 把生产二进制写到 `build/bin`。缺少 WebView2 时，下载策略会提示安装官方 bootstrapper。
 
-本脚本不生成 NSIS 安装包。Wails 的 `-nsis` 需要另装 NSIS，且默认安装脚本是否包含 `plugin-packages\` 未经本仓库验证。当前支持的发布形态是：把 `BeefTV.exe` 和旁边的 `plugin-packages\` 一起分发。
+本脚本不生成 NSIS 安装包。Wails 的 `-nsis` 需要另装 NSIS，且默认安装脚本是否包含 `plugin-packages\` 未经本仓库验证。当前支持的发布形态是：把 `光宇无限画布.exe` 和旁边的 `plugin-packages\` 一起分发。
 
 在非 Windows 主机交叉编译出来的 exe，不能当作 Windows 验收通过。
 
 ## 启动目录与数据目录
 
-桌面进程默认数据目录来自 Go 的 `os.UserConfigDir()`，再拼 `BeefTV`：
+桌面进程默认数据目录来自 Go 的 `os.UserConfigDir()`，再拼 `光宇无限画布`：
 
 | 系统 | 默认数据目录 |
 | --- | --- |
-| Windows | `%AppData%\BeefTV`（Roaming） |
-| macOS | `~/Library/Application Support/BeefTV` |
+| Windows | `%AppData%\光宇无限画布`（Roaming） |
+| macOS | `~/Library/Application Support/光宇无限画布` |
 
 其中包含 SQLite、本地资源和迁移备份。隔离调试时设置 `CANVAS_DESKTOP_DATA_DIR`，或启动桌面程序时传入 `--data-dir=/绝对路径/独立测试目录`；启动参数优先于环境变量，拒绝相对路径和文件系统根目录。`CANVAS_BACKEND_DATA_DIR` 只作用于 `cmd/server`，不会改桌面数据目录。
 
@@ -103,7 +103,7 @@ backend\cmd\desktop\build\bin\plugin-packages\*.beeftv-plugin
 
 需要知道的限制：
 
-- 未签名的 `BeefTV.exe` 可能被 SmartScreen 拦截；本脚本不签名。
+- 未签名的 `光宇无限画布.exe` 可能被 SmartScreen 拦截；本脚本不签名。
 - 构建机没有 C 编译器时，脚本会失败。常见 MSYS2/MinGW 路径若存在但不在 PATH，脚本会指出路径，不会自动加入 PATH。
 - 数据库连接串目前把数据目录与 `/open_ai_canvas.db` 直接拼接。Windows 一般接受正斜杠；数据目录名里如果出现 `?` 或 `#`，可能被当成 DSN 参数。
 
@@ -125,12 +125,12 @@ backend\cmd\desktop\build\bin\plugin-packages\*.beeftv-plugin
 
 | 系统 | 被替换 | 不会进更新包、也不会被替换 |
 | --- | --- | --- |
-| macOS | `BeefTV.app` | `~/Library/Application Support/BeefTV` |
-| Windows | `BeefTV.exe` 和旁边的 `plugin-packages\*.beeftv-plugin` | `%AppData%\BeefTV` |
+| macOS | `光宇无限画布.app` | `~/Library/Application Support/光宇无限画布` |
+| Windows | `光宇无限画布.exe` 和旁边的 `plugin-packages\*.beeftv-plugin` | `%AppData%\光宇无限画布` |
 
 应用包身份和可执行文件路径保持不变，所以前端 IndexedDB 会继续可用。官方插件随应用包更新；用户自己装的插件如果放在数据目录里，会留下来。
 
-程序与数据必须使用独立目录。尤其不要把 Windows zip 解压到 `%AppData%\BeefTV`，也不要将 `CANVAS_DESKTOP_DATA_DIR` 指向 exe 所在目录。更新器会在退出前拒绝这类目录重叠。
+程序与数据必须使用独立目录。尤其不要把 Windows zip 解压到 `%AppData%\光宇无限画布`，也不要将 `CANVAS_DESKTOP_DATA_DIR` 指向 exe 所在目录。更新器会在退出前拒绝这类目录重叠。
 
 更新包禁止带上 `.env`、SQLite 数据库和 `.settings-key`。打包工具遇到用户数据目录会直接拒绝。
 
@@ -192,10 +192,10 @@ export BEEFTV_UPDATER_PUBLIC_KEY="$(tr -d '[:space:]' < /path/to/beeftv-updater.
 正式文件名固定为：
 
 ```text
-BeefTV-vX.Y.Z-darwin-arm64.zip
-BeefTV-vX.Y.Z-darwin-amd64.zip
-BeefTV-vX.Y.Z-windows-amd64.zip
-BeefTV-vX.Y.Z-linux-amd64.zip
+光宇无限画布-vX.Y.Z-darwin-arm64.zip
+光宇无限画布-vX.Y.Z-darwin-amd64.zip
+光宇无限画布-vX.Y.Z-windows-amd64.zip
+光宇无限画布-vX.Y.Z-linux-amd64.zip
 desktop-update.json
 ```
 
@@ -203,9 +203,9 @@ Actions 中的 `desktop-*` 临时安装包保留 7 天，用于发布任务之�
 
 zip 里的布局：
 
-- macOS：`BeefTV.app/...`，保留可执行权限；内部安全符号链接会被解成普通文件，不会写成 zip 符号链接项。
-- Windows：根目录的 `BeefTV.exe` 和 `plugin-packages/*.beeftv-plugin`。
-- Linux x64：`BeefTV-linux/` 内包含 `BeefTV`、`cli/beeftv`、`agent-host/` 和 `plugin-packages/`。在 Ubuntu 24.04 原生构建，使用 GTK3 和 WebKitGTK 4.1；安装依赖和启动方法见 [Linux 安装说明](linux-install.md)。更新和回滚替换整个程序目录，用户数据留在配置目录。
+- macOS：`光宇无限画布.app/...`，保留可执行权限；内部安全符号链接会被解成普通文件，不会写成 zip 符号链接项。
+- Windows：根目录的 `光宇无限画布.exe` 和 `plugin-packages/*.beeftv-plugin`。
+- Linux x64：`光宇无限画布-linux/` 内包含 `光宇无限画布`、`cli/beeftv`、`agent-host/` 和 `plugin-packages/`。在 Ubuntu 24.04 原生构建，使用 GTK3 和 WebKitGTK 4.1；安装依赖和启动方法见 [Linux 安装说明](linux-install.md)。更新和回滚替换整个程序目录，用户数据留在配置目录。
 
 从 v1.5.7 起，更新清单和安装包托管在 Cloudflare R2：
 
@@ -233,7 +233,7 @@ v1.5.6 及以前的更新器仍内置 GitHub 清单地址。如果旧客户端�
 
 如果 GitHub 发布成功而 CF 激活失败，保留正式版本及所有不可变对象。核对失败原因后，用同一版本的原始清单重跑 `activate`；不要删除正式 tag 或重建不同内容的同版本包。切换前失败不会改变旧 CF 清单；条件写成功但最终回读失败时，新清单可能已经生效，必须先核对存储与公开入口，不能把它当作未发布。已经安装新版本的客户端不自动降级。
 
-在 `glanderness/BeefTV` 的 `main` 上手动运行 `.github/workflows/release-desktop.yml`。输入的 `confirm_version` 必须和 `VERSION` 一致。`CHANGELOG.md` 必须有对应的 `## vX.Y.Z` 段落，这段文字会同时成为 GitHub Release 说明和清单里的 `notes`。
+在 `glanderness/光宇无限画布` 的 `main` 上手动运行 `.github/workflows/release-desktop.yml`。输入的 `confirm_version` 必须和 `VERSION` 一致。`CHANGELOG.md` 必须有对应的 `## vX.Y.Z` 段落，这段文字会同时成为 GitHub Release 说明和清单里的 `notes`。
 
 工作流会拒绝：
 
@@ -253,8 +253,8 @@ Apple 公证不在这条工作流里。macOS 作业沿用现有脚本的 ad hoc 
 cd backend
 go run ./cmd/update-release package \
   --platform darwin-arm64 \
-  --input cmd/desktop/build/bin/BeefTV.app \
-  --output /tmp/BeefTV-vX.Y.Z-darwin-arm64.zip
+  --input cmd/desktop/build/bin/光宇无限画布.app \
+  --output /tmp/光宇无限画布-vX.Y.Z-darwin-arm64.zip
 go run ./cmd/update-release sign \
   --version vX.Y.Z \
   --commit "$(git rev-parse HEAD)" \
@@ -262,16 +262,16 @@ go run ./cmd/update-release sign \
   --private-key /path/to/beeftv-updater.private \
   --expect-public-key "$(tr -d '[:space:]' < /path/to/beeftv-updater.public)" \
   --require-platforms darwin-arm64,darwin-amd64,windows-amd64,linux-amd64 \
-  --asset darwin-arm64=/tmp/BeefTV-vX.Y.Z-darwin-arm64.zip \
-  --asset darwin-amd64=/tmp/BeefTV-vX.Y.Z-darwin-amd64.zip \
-  --asset windows-amd64=/tmp/BeefTV-vX.Y.Z-windows-amd64.zip \
-  --asset linux-amd64=/tmp/BeefTV-vX.Y.Z-linux-amd64.zip \
+  --asset darwin-arm64=/tmp/光宇无限画布-vX.Y.Z-darwin-arm64.zip \
+  --asset darwin-amd64=/tmp/光宇无限画布-vX.Y.Z-darwin-amd64.zip \
+  --asset windows-amd64=/tmp/光宇无限画布-vX.Y.Z-windows-amd64.zip \
+  --asset linux-amd64=/tmp/光宇无限画布-vX.Y.Z-linux-amd64.zip \
   --output /tmp/desktop-update.json
 ```
 
 ### 回滚
 
-客户端在退出前校验并把更新准备到程序所在磁盘；无写入权限、磁盘空间不足或签名错误时保留当前运行的应用。替换/启动失败会尝试恢复旧程序。程序旁的 `.beeftv-update-*` 目录暂存旧程序和恢复记录；本地后端启动、界面挂载、素材与画布缓存成功加载，且本地工作区与两类资源列表读取成功后，客户端自动清理同一安装位置已成功升级的目录（包括旧版本遗留目录）。失败、回滚、记录不完整或含额外文件的目录继续保留。Windows 升级锁随句柄关闭删除；macOS 保留零字节 `.BeefTV.update.lock`，防止仍使用旧版锁协议的助手并发替换应用，它不存储升级包或旧程序。清理失败不阻塞使用，下次启动重试。已启动的新进程不会自动降级，以免把迁移后的数据库交给旧程序；恢复旧程序时需另行确认数据库兼容或还原匹配的数据备份。
+客户端在退出前校验并把更新准备到程序所在磁盘；无写入权限、磁盘空间不足或签名错误时保留当前运行的应用。替换/启动失败会尝试恢复旧程序。程序旁的 `.beeftv-update-*` 目录暂存旧程序和恢复记录；本地后端启动、界面挂载、素材与画布缓存成功加载，且本地工作区与两类资源列表读取成功后，客户端自动清理同一安装位置已成功升级的目录（包括旧版本遗留目录）。失败、回滚、记录不完整或含额外文件的目录继续保留。Windows 升级锁随句柄关闭删除；macOS 保留零字节 `.光宇无限画布.update.lock`，防止仍使用旧版锁协议的助手并发替换应用，它不存储升级包或旧程序。清理失败不阻塞使用，下次启动重试。已启动的新进程不会自动降级，以免把迁移后的数据库交给旧程序；恢复旧程序时需另行确认数据库兼容或还原匹配的数据备份。
 
 已经发布的版本不能收回。已经更新成功的用户，不会因为删除 GitHub Release 而回到旧包。
 

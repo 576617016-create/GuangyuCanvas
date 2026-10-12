@@ -47,7 +47,7 @@ func main() {
 	_ = os.Remove(startupErrorPath)
 
 	err = wails.Run(&options.App{
-		Title:  "BeefTV",
+		Title:  "光宇无限画布",
 		Width:  1440,
 		Height: 960,
 		Mac:    &mac.Options{},

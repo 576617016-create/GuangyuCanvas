@@ -39,7 +39,7 @@ describe("助手前端接线", () => {
         expect(source).toContain('"/assistant/sessions/activate"');
         expect(source).toContain("/assistant/history?");
         expect(source).toContain("/undo");
-        expect(source).toContain('"X-Beeftv-Ui-Session": token');
+        expect(source).toContain('"X-光宇无限画布-Ui-Session": token');
     });
 
     test("界面文案使用用户语，不出现实现者术语", () => {

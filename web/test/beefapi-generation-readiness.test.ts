@@ -80,7 +80,7 @@ describe("managed BeefAPI generation readiness", () => {
         expect(ready(config, config.imageModel)).toBe(false);
         expect(ready(config, config.videoModel)).toBe(false);
         expect(listVideoReferenceModels(config)).toEqual([]);
-        expect(() => assertVideoConfig(resolveModelRequestConfig(config, config.videoModel), config.videoModel)).toThrow("请先连接 BeefTV");
+        expect(() => assertVideoConfig(resolveModelRequestConfig(config, config.videoModel), config.videoModel)).toThrow("请先连接 光宇无限画布");
     });
 
     test("manual provider keys stay required and are not treated as managed", () => {

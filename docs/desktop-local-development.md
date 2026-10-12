@@ -1,23 +1,23 @@
-# BeefTV 本地桌面开发与验收
+# 光宇无限画布 本地桌面开发与验收
 
-BeefTV 的桌面版是 Wails 应用：前端运行在 WebView，Go 后端在同一进程内启动一个仅监听 `127.0.0.1` 的 loopback API。桌面 profile 不注册交互式登录路由，首次启动通过 `/api/workspace/bootstrap` 创建或读取本地工作区。
+光宇无限画布 的桌面版是 Wails 应用：前端运行在 WebView，Go 后端在同一进程内启动一个仅监听 `127.0.0.1` 的 loopback API。桌面 profile 不注册交互式登录路由，首次启动通过 `/api/workspace/bootstrap` 创建或读取本地工作区。
 
 ## 数据位置
 
-默认数据目录由 Go 的 `os.UserConfigDir()` 决定，最终目录为 `<系统用户配置目录>/BeefTV`。Windows 上是 `%AppData%\BeefTV`，macOS 上是 `~/Library/Application Support/BeefTV`。
+默认数据目录由 Go 的 `os.UserConfigDir()` 决定，最终目录为 `<系统用户配置目录>/光宇无限画布`。Windows 上是 `%AppData%\光宇无限画布`，macOS 上是 `~/Library/Application Support/光宇无限画布`。
 
 其中包含本地 SQLite 数据库、资源文件和迁移备份。验收或调试时可通过环境变量指定隔离目录：
 
 ```bash
 CANVAS_DESKTOP_DATA_DIR="$(mktemp -d /tmp/beeftv-data.XXXXXX)" \
-  backend/cmd/desktop/build/bin/BeefTV.app/Contents/MacOS/BeefTV
+  backend/cmd/desktop/build/bin/光宇无限画布.app/Contents/MacOS/光宇无限画布
 ```
 
 Windows：
 
 ```powershell
 $env:CANVAS_DESKTOP_DATA_DIR = Join-Path $env:TEMP "beeftv-data"
-backend\cmd\desktop\build\bin\BeefTV.exe
+backend\cmd\desktop\build\bin\光宇无限画布.exe
 ```
 
 这个变量只改变数据目录，不改变应用的本地工作区和无登录行为。官方插件仍然从可执行文件旁边的 `plugin-packages\` 加载，不跟数据目录走。
@@ -57,7 +57,7 @@ go run github.com/wailsapp/wails/v2/cmd/wails@v2.16.0 build -clean -m -nosyncgom
 产物位于：
 
 ```text
-backend/cmd/desktop/build/bin/BeefTV.app
+backend/cmd/desktop/build/bin/光宇无限画布.app
 ```
 
 ## 手工验收清单
@@ -78,7 +78,7 @@ Wails 2.16 生产包只把 `/` 和 `index.html` 交给前端运行时；深路�
 
 - 统一开发脚本已验证：Wails 日志显示 `Frontend DevServer URL: http://127.0.0.1:3000`；浏览器代理和后端直连的 `/api/health/live` 返回相同 `dev` 构建信息；`/api/workspace/bootstrap` 经浏览器代理返回 HTTP 200。
 
-- Wails 2.16.0 生产包已重新构建并自签名，产物为 `backend/cmd/desktop/build/bin/BeefTV.app`。
+- Wails 2.16.0 生产包已重新构建并自签名，产物为 `backend/cmd/desktop/build/bin/光宇无限画布.app`。
 - `go test ./internal/handler ./internal/bootstrap ./cmd/desktop -count=1` 通过。
 - 协议定向测试通过。
 - 重新打开 `.app` 后，桌面进程正常运行并进入本地工作区；手工创建“本地验收画布”、退出并重启后，项目库仍显示该画布，且显示“已加载全部 2 个画布”。

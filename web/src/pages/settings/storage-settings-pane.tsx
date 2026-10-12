@@ -95,7 +95,7 @@ export function StorageSettingsPane() {
             <label className="block space-y-2">
                 <span className="text-sm">新存储目录</span>
                 <div className="flex min-w-0 flex-wrap gap-2">
-                    <Input className="min-w-0 flex-1" aria-label="新存储目录" value={target} onChange={(event) => setTarget(event.target.value)} placeholder="例如 D:\BeefTV" disabled={busy} />
+                    <Input className="min-w-0 flex-1" aria-label="新存储目录" value={target} onChange={(event) => setTarget(event.target.value)} placeholder="例如 D:\光宇无限画布" disabled={busy} />
                     <Button icon={<FolderOpen className="size-4" />} onClick={choose} disabled={busy}>
                         选择文件夹
                     </Button>

@@ -9,6 +9,8 @@ export const MODEL_SERVICE_PRESETS = [
     { id: "openai", name: "OpenAI", subtitle: "文本 · 图片 · 视频", icon: "OpenAI", baseUrl: "https://api.openai.com/v1", apiFormat: "openai" },
     { id: "gemini", name: "Google Gemini", subtitle: "文本 · 图片 · Veo 视频", icon: "Gemini", baseUrl: "https://generativelanguage.googleapis.com", apiFormat: "gemini" },
     { id: "ark", name: "火山方舟", subtitle: "文本 · 即梦图片 · Seedance 视频", icon: "Volcengine", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", apiFormat: "openai" },
+    { id: "cloud-gpu", name: "云端 GPU", subtitle: "AutoDL / RunPod / vLLM / LM Studio 等 OpenAI 兼容端点", icon: "OpenAI", baseUrl: "", apiFormat: "openai" },
+    { id: "xiangong", name: "仙宫云", subtitle: "GPU 实例上的 Ollama / vLLM / ComfyUI 等 OpenAI 兼容端点", icon: "OpenAI", baseUrl: "", apiFormat: "openai" },
 ] as const;
 export type ModelServicePresetId = typeof MODEL_SERVICE_PRESETS[number]["id"];
 export const CAPABILITY_LABELS: Record<ModelCapability, string> = { text: "文本", image: "图片", video: "视频", audio: "音频" };

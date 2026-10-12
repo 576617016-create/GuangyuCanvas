@@ -25,7 +25,7 @@ const modeLabels: Record<AgentClientMode, string> = {
 
 const modeSummaries: Record<AgentClientMode, string> = {
     "read-only": "此连接保持只读；重新连接后可使用全部创作工具。",
-    "read-write": "可使用 BeefTV 的全部创作工具，操作审批由连接的 Agent 负责。",
+    "read-write": "可使用 光宇无限画布 的全部创作工具，操作审批由连接的 Agent 负责。",
 };
 
 export function agentClientKindLabel(kind: AgentClientKind | string) {
@@ -51,12 +51,12 @@ export type AgentClientSetupBlock = {
     instruction: string;
 };
 
-const COMMAND_INSTRUCTION = "粘贴到终端运行；Windows 请使用 PowerShell。连接时请保持 BeefTV 开启。";
+const COMMAND_INSTRUCTION = "粘贴到终端运行；Windows 请使用 PowerShell。连接时请保持 光宇无限画布 开启。";
 
 const configInstructions: Record<AgentClientKind, string> = {
     codex: "粘贴到你使用的工具的 MCP 配置文件里。",
     claude: "粘贴到你使用的工具的 MCP 配置文件里。",
-    "claude-desktop": "打开 Claude Desktop 的设置 → 开发者 → 编辑配置，将 beeftv 项合并到 mcpServers，保留已有服务，然后完全退出并重新打开 Claude。连接时请保持 BeefTV 开启。",
+    "claude-desktop": "打开 Claude Desktop 的设置 → 开发者 → 编辑配置，将 beeftv 项合并到 mcpServers，保留已有服务，然后完全退出并重新打开 Claude。连接时请保持 光宇无限画布 开启。",
     cursor: "粘贴到 ~/.cursor/mcp.json。",
     other: "粘贴到你使用的工具的 MCP 配置文件里。",
 };

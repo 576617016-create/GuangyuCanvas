@@ -9,7 +9,7 @@ const params = new URLSearchParams(location.search);
 document.documentElement.classList.toggle("dark",params.has("dark"));
 document.body.style.background="var(--background)";
 document.body.style.color="var(--foreground)";
-const initial = { dataDir: "C:\\Users\\Creator\\AppData\\Roaming\\BeefTV", usedBytes: 1024 ** 3, freeBytes: 40 * 1024 ** 3 };
+const initial = { dataDir: "C:\\Users\\Creator\\AppData\\Roaming\\光宇无限画布", usedBytes: 1024 ** 3, freeBytes: 40 * 1024 ** 3 };
 let usage = JSON.parse(localStorage.getItem("fixture-usage") || JSON.stringify(initial));
 const config = { enabled: false, endpoint: "", bucket: "", region: "auto", accessKeyId: "", publicBaseURL: "", hasSecret: false };
 window.go = {
@@ -17,7 +17,7 @@ window.go = {
         DesktopApp: {
             RuntimeConfig: async () => ({ baseURL: "http://127.0.0.1:9999/api", launchToken: "fixture" }),
             StorageSettings: async () => usage,
-            ChooseStorageDirectory: async () => "D:\\BeefTV",
+            ChooseStorageDirectory: async () => "D:\\光宇无限画布",
             MigrateStorage: async (path) => {
                 usage = { ...usage, dataDir: path, previousDir: initial.dataDir, previousBytes: initial.usedBytes };
                 localStorage.setItem("fixture-usage", JSON.stringify(usage));

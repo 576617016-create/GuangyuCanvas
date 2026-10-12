@@ -34,7 +34,7 @@ describe("外部 Agent 接入 API", () => {
     test("列表按信封解包，并同时给出已连接客户端和命令行工具状态", async () => {
         const data = {
             clients: [{ id: "c-1", label: "Codex", kind: "codex", mode: "read-only", createdAt: "2026-09-20T02:00:00Z", lastUsedAt: null }],
-            cli: { path: "/Applications/BeefTV.app/Contents/Resources/beeftv", available: true, installCommand: "ln -s /x/beeftv /usr/local/bin/beeftv" },
+            cli: { path: "/Applications/光宇无限画布.app/Contents/Resources/beeftv", available: true, installCommand: "ln -s /x/beeftv /usr/local/bin/beeftv" },
         };
         await withStubbedApi({ code: 0, data, msg: "ok" }, 200, async (recorded) => {
             await expect(listAgentClients()).resolves.toEqual(data);

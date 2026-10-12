@@ -1,6 +1,6 @@
 ---
 title: 后端数据库
-description: BeefTV后端核心持久化表与状态边界
+description: 光宇无限画布后端核心持久化表与状态边界
 ---
 
 # 后端数据库
@@ -67,11 +67,11 @@ Agent 宿主在安装仓库锁定的依赖后，可从仓库根目录执行 `bun
 人工桌面验收须另行取得按候选 commit 构建的完整包。先关闭所有使用源工作区的程序，复制整个工作区到备份目录，再从备份复制一个测试目录；保留未打开过的备份。启动候选时显式设置 `CANVAS_DESKTOP_DATA_DIR` 为测试目录的绝对路径，核对启动日志及工作区内容后再操作。不得省略此变量而误用默认工作区。Windows PowerShell 示例（路径必须替换为实际独立目录）：
 
 ```powershell
-$env:CANVAS_DESKTOP_DATA_DIR = 'D:\BeefTV-tests\candidate-workspace'
-& 'D:\BeefTV-tests\candidate-app\BeefTV.exe'
+$env:CANVAS_DESKTOP_DATA_DIR = 'D:\光宇无限画布-tests\candidate-workspace'
+& 'D:\光宇无限画布-tests\candidate-app\光宇无限画布.exe'
 ```
 
-测试包应解压到新目录，保留 `BeefTV.exe`、`plugins`、`cli`、`agent-host` 完整布局，并按提供方的签名清单核对签名、大小及 SHA-256；本轮没有发布可下载包。旧 Windows 升级器不能直接接受这个布局，过渡升级器的本地方案在 `codex/product-windows-bridge-20260930`，尚未完成 Windows 真机验收或更新源部署。不要把新包只覆盖到旧目录、绕过验签或运行正式发布工作流来代替测试。
+测试包应解压到新目录，保留 `光宇无限画布.exe`、`plugins`、`cli`、`agent-host` 完整布局，并按提供方的签名清单核对签名、大小及 SHA-256；本轮没有发布可下载包。旧 Windows 升级器不能直接接受这个布局，过渡升级器的本地方案在 `codex/product-windows-bridge-20260930`，尚未完成 Windows 真机验收或更新源部署。不要把新包只覆盖到旧目录、绕过验签或运行正式发布工作流来代替测试。
 
 人工检查画布与任务历史、失败诊断、重启后输出找回、CLI/MCP 操作回放、独立音轨和字幕成片、ZIP 在空工作区导入。生成类上游调用须另行获得预算授权。回滚时退出候选，把未升级的完整备份复制到另一个新目录，再使用匹配该备份的旧包显式指向该目录；禁止旧 Agent v6 或旧整合 v8 程序打开升级后的 v9 目录。
 

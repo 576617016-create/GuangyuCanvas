@@ -1,0 +1,50 @@
+name: 构建 光宇无限画布 (Windows)
+
+on:
+  workflow_dispatch:        # 允许在 GitHub 网页上手动点一下就构建
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: 用 GitHub 免费电脑编译 Windows 版
+    runs-on: windows-latest
+    steps:
+      - name: 下载代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: 安装 Bun（前端构建工具）
+        uses: oven-sh/setup-bun@v2
+
+      - name: 安装 C 编译器（CGO 必需，go-sqlite3 依赖）
+        shell: bash
+        run: |
+          C:/msys64/usr/bin/bash -lc 'pacman -S --needed --noconfirm mingw-w64-x86_64-gcc'
+          echo "C:/msys64/mingw64/bin" >> "$GITHUB_PATH"
+
+      - name: 安装 Wails 命令行工具
+        shell: pwsh
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+          echo "$(go env GOPATH)/bin" >> $env:GITHUB_PATH
+
+      - name: 编译并打包（产出 光宇无限画布.exe）
+        shell: pwsh
+        working-directory: backend/cmd/desktop
+        run: |
+          wails build -platform windows/amd64 -webview2 download
+
+      - name: 上传成品（可下载的压缩包）
+        uses: actions/upload-artifact@v4
+        with:
+          name: 光宇无限画布-windows
+          path: backend/cmd/desktop/build/bin
+          if-no-files-found: error

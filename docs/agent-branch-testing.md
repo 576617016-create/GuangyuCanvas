@@ -5,7 +5,7 @@
 ## 可以测试什么
 
 - 在画布右上角打开「助手」，用自然语言读取画布、批量创建节点、修改标题和提示词、连接节点。
-- 在输入框左下角选择助手模型；选择会保存并用于下一轮对话，回复或切换对话期间暂时不能更换。BeefTV 连接授权成功后默认使用 GPT-6 Astra，可选目录中的 Astra、Claude Opus 5.5、DeepSeek V4.1 Flash 和 GLM 5.3；目录刷新会保留你的选择。自定义渠道仍可使用自己配置的文本模型。
+- 在输入框左下角选择助手模型；选择会保存并用于下一轮对话，回复或切换对话期间暂时不能更换。光宇无限画布 连接授权成功后默认使用 GPT-6 Astra，可选目录中的 Astra、Claude Opus 5.5、DeepSeek V4.1 Flash 和 GLM 5.3；目录刷新会保留你的选择。自定义渠道仍可使用自己配置的文本模型。
 - 刷新后继续对话，查看历史对话；对助手产生的画布修改使用「撤销这一轮」。画布后来被改过时，撤销会停止并保留当前内容。
 - 请求图片或视频生成时，助手先显示生成提议。核对节点、模型和提示词并确认后，才会提交生成任务。
 - 在设置中登记外部客户端，通过随包的 `beeftv` CLI 或 MCP，让 Codex、Claude Code、Cursor 读取或修改工作区。客户端权限在登记时选择，可在设置中吊销。
@@ -17,7 +17,7 @@
 ## 安装前
 
 1. 使用交接消息中的分支和完整提交 SHA。已有仓库有改动时，新建工作树或单独 clone，不覆盖本地修改。
-2. 保存工作、退出 BeefTV，备份数据目录：macOS 为 `~/Library/Application Support/BeefTV`，Windows 为 `%AppData%\BeefTV`。备份包含数据库、素材和本地配置，不能只备份可执行文件。不要把配置内容或密钥粘贴到聊天。
+2. 保存工作、退出 光宇无限画布，备份数据目录：macOS 为 `~/Library/Application Support/光宇无限画布`，Windows 为 `%AppData%\光宇无限画布`。备份包含数据库、素材和本地配置，不能只备份可执行文件。不要把配置内容或密钥粘贴到聊天。
 3. 检查 Git、Bun、Go 和编译工具。Bun 按 `web/package.json` 的 `packageManager` 安装，Go 版本按 `backend/go.mod`；macOS 需要 Xcode Command Line Tools，Windows 需要支持 CGO 的 GCC 和 WebView2。详细前置条件见[桌面构建](desktop-release.md)。
 4. Agent 随包使用 **Node 24.15.0**。从 Node 官方发行源取得与目标系统、架构一致的运行时并校验官方 SHA-256。`BEEFTV_NODE_RUNTIME` 指向解压目录：macOS 下应有 `bin/node`，Windows 下应有 `node.exe`。不要指向不匹配的全局 Node。
 
@@ -32,10 +32,10 @@ bun scripts/package-agent-host.mjs darwin/arm64 --verify-runtime
 (cd web && bun install --frozen-lockfile)
 ./plugin-packages/build-packages.sh
 ./scripts/update-local-beeftv-app.sh
-open /Applications/BeefTV.app
+open /Applications/光宇无限画布.app
 ```
 
-Intel Mac 使用 `node-v24.15.0-darwin-x64` 和 `darwin/amd64`。安装脚本会构建、验证签名并更新 `/Applications/BeefTV.app`，结束后清理中间 `.app`。无需全局安装 pi。
+Intel Mac 使用 `node-v24.15.0-darwin-x64` 和 `darwin/amd64`。安装脚本会构建、验证签名并更新 `/Applications/光宇无限画布.app`，结束后清理中间 `.app`。无需全局安装 pi。
 
 ## Windows x64
 
@@ -47,7 +47,7 @@ bun scripts/package-agent-host.mjs windows/amd64 --verify-runtime
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-beeftv-windows-release.ps1
 ```
 
-构建完成后启动 `backend\cmd\desktop\build\bin\BeefTV.exe`。需要复制到测试安装目录时，复制整个 `build\bin` 目录，保留 `agent-host`、`plugin-packages` 和 `cli`；仅复制 exe 无法运行助手。不要覆盖尚未退出的正式应用。
+构建完成后启动 `backend\cmd\desktop\build\bin\光宇无限画布.exe`。需要复制到测试安装目录时，复制整个 `build\bin` 目录，保留 `agent-host`、`plugin-packages` 和 `cli`；仅复制 exe 无法运行助手。不要覆盖尚未退出的正式应用。
 
 ## 开始使用
 

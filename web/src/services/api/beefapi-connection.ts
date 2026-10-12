@@ -60,9 +60,9 @@ export function beefAPIConnectionLabel(summary: BeefAPIConnectionSummary | null 
     const state = summary?.state || "disconnected";
     switch (state) {
         case "connecting":
-            return summary?.errorReason || "正在连接 BeefTV";
+            return summary?.errorReason || "正在连接 光宇无限画布";
         case "connection_error":
-            return summary?.errorReason || "无法连接 BeefTV 服务，请检查网络后重试";
+            return summary?.errorReason || "无法连接 光宇无限画布 服务，请检查网络后重试";
         case "pending":
             return summary?.errorReason || (summary?.userCode ? `请在浏览器中确认 ${summary.userCode}` : "请在浏览器中确认授权");
         case "connected":

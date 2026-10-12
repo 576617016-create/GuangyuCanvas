@@ -17,12 +17,26 @@ type Location struct {
 	PreviousFiles map[string]string `json:"previousFiles,omitempty"`
 }
 
+// LegacyDataDirName 是重命名前的默认数据目录名，用于一次性迁移既有用户数据。
+const LegacyDataDirName = "BeefTV"
+
+// DefaultRoot 返回本机默认数据根目录，并在首次启动时把旧版 BeefTV 目录
+// 就地迁移到新品牌名（光宇无限画布），保留用户的工程与配置。
 func DefaultRoot() (string, error) {
 	root, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(root, "BeefTV"), nil
+	newRoot := filepath.Join(root, "光宇无限画布")
+	legacy := filepath.Join(root, LegacyDataDirName)
+	if _, err := os.Stat(newRoot); err != nil {
+		if _, lerr := os.Stat(legacy); lerr == nil {
+			if merr := os.Rename(legacy, newRoot); merr != nil {
+				return "", fmt.Errorf("迁移旧数据目录失败: %w", merr)
+			}
+		}
+	}
+	return newRoot, nil
 }
 
 // The pointer stays in the system profile, independent of the selected data volume.
@@ -92,7 +106,7 @@ func saveLocation(root string, location Location) error {
 func canonical(path string) (string, error) {
 	path = strings.TrimSpace(path)
 	if !filepath.IsAbs(path) || filepath.Dir(filepath.Clean(path)) == filepath.Clean(path) {
-		return "", errors.New("请选择磁盘中的文件夹，例如 D:\\BeefTV")
+		return "", errors.New("请选择磁盘中的文件夹，例如 D:\\光宇无限画布")
 	}
 	path = filepath.Clean(path)
 	missing := []string{}

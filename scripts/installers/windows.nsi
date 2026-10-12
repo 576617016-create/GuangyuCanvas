@@ -5,18 +5,18 @@ Unicode true
 !include "TextFunc.nsh"
 ${StrStr}
 ${UnStrStr}
-Name "BeefTV"
+Name "光宇无限画布"
 OutFile "${OUTPUT}"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-InstallDir "$LOCALAPPDATA\Programs\BeefTV"
+InstallDir "$LOCALAPPDATA\Programs\光宇无限画布"
 Var StageDir
 Var BackupDir
 Var CleanDir
 VIProductVersion "${VERSION}.0"
-VIAddVersionKey "ProductName" "BeefTV"
+VIAddVersionKey "ProductName" "光宇无限画布"
 VIAddVersionKey "FileVersion" "${VERSION}"
-VIAddVersionKey "FileDescription" "BeefTV Setup"
+VIAddVersionKey "FileDescription" "光宇无限画布 Setup"
 !define MUI_ABORTWARNING
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_COMPONENTS
@@ -29,24 +29,24 @@ VIAddVersionKey "FileDescription" "BeefTV Setup"
 
 !macro RequireClosed PREFIX
 Function ${PREFIX}RequireClosed
-  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq BeefTV.exe" /NH'
+  nsExec::ExecToStack '"$SYSDIR\tasklist.exe" /FI "IMAGENAME eq 光宇无限画布.exe" /NH'
   Pop $0
   Pop $1
 !if "${PREFIX}" == "un."
-  ${UnStrStr} $2 $1 "BeefTV.exe"
+  ${UnStrStr} $2 $1 "光宇无限画布.exe"
 !else
-  ${StrStr} $2 $1 "BeefTV.exe"
+  ${StrStr} $2 $1 "光宇无限画布.exe"
 !endif
   ${If} $2 == ""
 !if "${PREFIX}" == "un."
-    ${UnStrStr} $2 $1 "beeftv.exe"
+    ${UnStrStr} $2 $1 "光宇无限画布.exe"
 !else
-    ${StrStr} $2 $1 "beeftv.exe"
+    ${StrStr} $2 $1 "光宇无限画布.exe"
 !endif
   ${EndIf}
   ${If} $0 != 0
   ${OrIf} $2 != ""
-    MessageBox MB_OK|MB_ICONEXCLAMATION "Please close BeefTV and its CLI before installing or uninstalling." /SD IDOK
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Please close 光宇无限画布 and its CLI before installing or uninstalling." /SD IDOK
     SetErrorLevel 2
     Abort
   ${EndIf}
@@ -102,17 +102,17 @@ FunctionEnd
 Function .onInit
   SetShellVarContext current
   # A fixed app-owned directory prevents /D from targeting the user's project data.
-  StrCpy $INSTDIR "$LOCALAPPDATA\Programs\BeefTV"
+  StrCpy $INSTDIR "$LOCALAPPDATA\Programs\光宇无限画布"
   Call RequireClosed
 FunctionEnd
 
 Function un.onInit
   SetShellVarContext current
-  StrCpy $INSTDIR "$LOCALAPPDATA\Programs\BeefTV"
+  StrCpy $INSTDIR "$LOCALAPPDATA\Programs\光宇无限画布"
   Call un.RequireClosed
 FunctionEnd
 
-Section "BeefTV (required)" SEC_APP
+Section "光宇无限画布 (required)" SEC_APP
   SectionIn RO
   ClearErrors
   CreateDirectory "$LOCALAPPDATA\Programs"
@@ -160,34 +160,34 @@ Section "BeefTV (required)" SEC_APP
   Rename "$BackupDir" "$INSTDIR"
   install_failed:
   RMDir /r "$StageDir"
-  MessageBox MB_OK|MB_ICONSTOP "Installation could not replace the application. Close programs using BeefTV and try again. The previous application is kept at $INSTDIR or $BackupDir." /SD IDOK
+  MessageBox MB_OK|MB_ICONSTOP "Installation could not replace the application. Close programs using 光宇无限画布 and try again. The previous application is kept at $INSTDIR or $BackupDir." /SD IDOK
   SetErrorLevel 1
   Abort
   install_registered:
-  CreateDirectory "$SMPROGRAMS\BeefTV"
-  CreateShortcut "$SMPROGRAMS\BeefTV\BeefTV.lnk" "$INSTDIR\BeefTV.exe"
-  CreateShortcut "$SMPROGRAMS\BeefTV\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "DisplayName" "BeefTV"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "DisplayIcon" "$INSTDIR\BeefTV.exe"
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "NoModify" 1
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV" "NoRepair" 1
+  CreateDirectory "$SMPROGRAMS\光宇无限画布"
+  CreateShortcut "$SMPROGRAMS\光宇无限画布\光宇无限画布.lnk" "$INSTDIR\光宇无限画布.exe"
+  CreateShortcut "$SMPROGRAMS\光宇无限画布\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "DisplayName" "光宇无限画布"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "DisplayIcon" "$INSTDIR\光宇无限画布.exe"
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布" "NoRepair" 1
 SectionEnd
 
 Section /o "Desktop shortcut" SEC_DESKTOP
-  CreateShortcut "$DESKTOP\BeefTV.lnk" "$INSTDIR\BeefTV.exe"
+  CreateShortcut "$DESKTOP\光宇无限画布.lnk" "$INSTDIR\光宇无限画布.exe"
 SectionEnd
 
 Section "Uninstall"
   SetOutPath "$LOCALAPPDATA\Programs"
   StrCpy $CleanDir "$INSTDIR"
   Call un.RemovePayload
-  Delete "$DESKTOP\BeefTV.lnk"
-  Delete "$SMPROGRAMS\BeefTV\BeefTV.lnk"
-  Delete "$SMPROGRAMS\BeefTV\Uninstall.lnk"
-  RMDir "$SMPROGRAMS\BeefTV"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BeefTV"
+  Delete "$DESKTOP\光宇无限画布.lnk"
+  Delete "$SMPROGRAMS\光宇无限画布\光宇无限画布.lnk"
+  Delete "$SMPROGRAMS\光宇无限画布\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\光宇无限画布"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\光宇无限画布"
 SectionEnd

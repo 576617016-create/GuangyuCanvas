@@ -1,0 +1,270 @@
+{
+  "apiVersion": "beeftv.plugin/v2",
+  "id": "workbuddy-agent",
+  "name": "布布 (WorkBuddy)",
+  "version": "1.0.0",
+  "author": "光宇无限画布 Contributors",
+  "description": "把布布(WorkBuddy)作为画布 Agent 接入的 OpenAI 兼容协议插件。可指向任意 OpenAI 风格的 chat/agent 端点，并内置布布人格系统提示。",
+  "documentation": "# 布布 (WorkBuddy) Agent 接入\n\n该插件把「布布」(WorkBuddy AI 助手) 接入 光宇无限画布 的画布 Agent 体系，复用 OpenAI Chat Completions 线协议。\n\n## 适用场景\n\n- 在画布里让布布以 Agent 身份参与创作：生成文字、图片、视频提示词，调用工具，编排工作流。\n- 指向任意 OpenAI 兼容的 chat/agent 端点（自建网关、兼容服务、或 WorkBuddy 暴露的兼容端点）。\n\n## 协议身份\n\n- 插件 ID：`workbuddy-agent`。\n- Provider ID：`workbuddy-agent`。\n- 能力：`text`（Agent 模式下可驱动工具调用）。\n- 默认 Base URL：本地桥接 `http://127.0.0.1:8787/v1`（由仓库 `tools/workbuddy-bridge` 提供；桥接上游可指向仙宫云 vLLM/Ollama，或任意 OpenAI 兼容服务）。\n- 鉴权驱动：`bearer`。\n- 创建：`POST /chat/completions`。\n- Agent：`POST /chat/completions`。\n- 生命周期：同步响应。\n\n## 布布人格（默认系统提示）\n\n> 你是布布，光宇无限画布里务实、有主张、简洁的 AI 助手。先动手做、必要时再澄清；不堆砌客套话。在画布中协助用户组织创意、生成与迭代文/图/视频/音频素材。\n\n该提示在创建布布助手(Assistant)时可被覆盖或增强。\n\n## 配置字段\n\n| 字段 | 类型 | 必填 | 含义 |\n| --- | --- | --- | --- |\n| `apiKey` | secret | 是 | 端点 API Key |\n| `baseUrl` | string | 否 | 兼容端点地址，覆盖默认占位地址 |\n\n## 兼容边界\n\n该包只声明 OpenAI Chat Completions profile；若 WorkBuddy 端点提供图片/视频生成接口，请配合对应的 openai-images / newapi 协议插件使用。\n\n---\n\n完整接口字段见 [docs/interface.md](docs/interface.md)。\n\n<!-- BEEFTV_PLUGIN_MANIFEST_START -->\n## Manifest 完整接口定义\n\n```json\n{\n  \"apiVersion\": \"beeftv.plugin/v2\",\n  \"id\": \"workbuddy-agent\",\n  \"name\": \"布布 (WorkBuddy)\",\n  \"version\": \"1.0.0\",\n  \"author\": \"光宇无限画布 Contributors\",\n  \"description\": \"把布布(WorkBuddy)作为画布 Agent 接入的 OpenAI 兼容协议插件。\",\n  \"permissions\": [\"generation.run\", \"media.read\"],\n  \"configuration\": {\n    \"fields\": [\n      { \"name\": \"apiKey\", \"type\": \"secret\", \"label\": \"API Key\", \"required\": true },\n      { \"name\": \"baseUrl\", \"type\": \"string\", \"label\": \"端点地址\", \"required\": false }\n    ]\n  },\n  \"contributes\": {\n    \"providers\": [\n      {\n        \"id\": \"workbuddy-agent\",\n        \"label\": \"布布 (WorkBuddy)\",\n        \"capabilities\": [\"text\"],\n        \"scopes\": [\"admin.system-channel\", \"user.custom-channel\", \"canvas\", \"creation\", \"agent\"],\n        \"baseUrl\": \"https://api.workbuddy.local/v1\",\n        \"requiresPublicMediaUrls\": false,\n        \"auth\": { \"type\": \"bearer\", \"field\": \"apiKey\" },\n        \"parameters\": [\n          { \"name\": \"model\", \"type\": \"string\", \"required\": true, \"mapping\": \"model\", \"description\": \"上游模型 ID。\" },\n          { \"name\": \"messages\", \"type\": \"message[]\", \"required\": true, \"mapping\": \"provider message container\", \"description\": \"包含历史消息和当前用户输入。\" },\n          { \"name\": \"instructions\", \"type\": \"string\", \"required\": false, \"mapping\": \"system/instructions\", \"description\": \"系统指令（布布人格）。\" },\n          { \"name\": \"temperature\", \"type\": \"number\", \"required\": false, \"mapping\": \"temperature\", \"description\": \"采样温度。\" },\n          { \"name\": \"top_p\", \"type\": \"number\", \"required\": false, \"mapping\": \"top_p\", \"description\": \"核采样参数。\" },\n          { \"name\": \"max_tokens\", \"type\": \"integer\", \"required\": false, \"mapping\": \"max_tokens/max_output_tokens\", \"description\": \"最大输出 token。\" },\n          { \"name\": \"tools\", \"type\": \"array\", \"required\": false, \"mapping\": \"tools/toolConfig\", \"description\": \"工具定义。\" },\n          { \"name\": \"tool_choice\", \"type\": \"object|string\", \"required\": false, \"mapping\": \"tool_choice\", \"description\": \"工具选择策略。\" },\n          { \"name\": \"response_format\", \"type\": \"object\", \"required\": false, \"mapping\": \"response_format/text\", \"description\": \"结构化输出配置。\" },\n          { \"name\": \"stream\", \"type\": \"boolean\", \"required\": false, \"mapping\": \"stream\", \"description\": \"流式开关。\" }\n        ],\n        \"create\": {\n          \"method\": \"POST\",\n          \"path\": \"/chat/completions\",\n          \"contentType\": \"application/json\",\n          \"body\": {\n            \"model\": { \"$ref\": \"request.model\" },\n            \"messages\": { \"$ref\": \"request.messages\" },\n            \"temperature\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.temperature\" } },\n            \"top_p\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.top_p\" } },\n            \"max_tokens\": { \"$omitEmpty\": { \"$coalesce\": [ { \"$ref\": \"request.extra.max_tokens\" }, { \"$ref\": \"request.providerOptions.chat-completion.max_tokens\" } ] } },\n            \"tools\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.tools\" } },\n            \"tool_choice\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.tool_choice\" } },\n            \"response_format\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.response_format\" } },\n            \"stream\": { \"$omitEmpty\": { \"$ref\": \"request.providerOptions.chat-completion.stream\" } }\n          }\n        },\n        \"agent\": {\n          \"method\": \"POST\",\n          \"path\": \"/chat/completions\",\n          \"contentType\": \"application/json\",\n          \"body\": { \"$merge\": [ { \"$ref\": \"request.extra.agent.chatCompletion\" }, { \"model\": { \"$ref\": \"request.model\" } } ] }\n        },\n        \"response\": {\n          \"status\": \"succeeded\",\n          \"textPaths\": [ \"choices.0.message.content\", \"choices.0.text\" ],\n          \"reasoningPaths\": [ \"choices.0.message.reasoning_content\" ],\n          \"usage\": { \"$ref\": \"response.usage\" },\n          \"errorPaths\": [ \"error.code\" ],\n          \"messagePaths\": [ \"error.message\" ]\n        },\n        \"agentResponse\": {\n          \"textPaths\": [ \"choices.0.message.content\", \"choices.0.text\" ],\n          \"reasoningPaths\": [ \"choices.0.message.reasoning_content\" ],\n          \"toolCallsPath\": \"choices.0.message.tool_calls\",\n          \"toolCallIdPaths\": [ \"id\" ],\n          \"toolCallNamePaths\": [ \"function.name\" ],\n          \"toolCallArgumentsPaths\": [ \"function.arguments\" ]\n        }\n      }\n    ]\n  }\n}\n```\n<!-- BEEFTV_PLUGIN_MANIFEST_END -->",
+  "permissions": [
+    "generation.run",
+    "media.read"
+  ],
+  "configuration": {
+    "fields": [
+      {
+        "name": "apiKey",
+        "type": "secret",
+        "label": "API Key",
+        "required": true
+      },
+      {
+        "name": "baseUrl",
+        "type": "string",
+        "label": "端点地址",
+        "required": false
+      }
+    ]
+  },
+  "contributes": {
+    "providers": [
+      {
+        "id": "workbuddy-agent",
+        "label": "布布 (WorkBuddy)",
+        "capabilities": [
+          "text"
+        ],
+        "scopes": [
+          "admin.system-channel",
+          "user.custom-channel",
+          "canvas",
+          "creation",
+          "agent"
+        ],
+        "baseUrl": "http://127.0.0.1:8787/v1",
+        "requiresPublicMediaUrls": false,
+        "auth": {
+          "type": "bearer",
+          "field": "apiKey"
+        },
+        "parameters": [
+          {
+            "name": "model",
+            "type": "string",
+            "required": true,
+            "mapping": "model",
+            "description": "上游模型 ID。"
+          },
+          {
+            "name": "messages",
+            "type": "message[]",
+            "required": true,
+            "mapping": "provider message container",
+            "description": "包含历史消息和当前用户输入。"
+          },
+          {
+            "name": "instructions",
+            "type": "string",
+            "required": false,
+            "mapping": "system/instructions",
+            "description": "系统指令（布布人格）。"
+          },
+          {
+            "name": "temperature",
+            "type": "number",
+            "required": false,
+            "mapping": "temperature",
+            "description": "采样温度。"
+          },
+          {
+            "name": "top_p",
+            "type": "number",
+            "required": false,
+            "mapping": "top_p",
+            "description": "核采样参数。"
+          },
+          {
+            "name": "max_tokens",
+            "type": "integer",
+            "required": false,
+            "mapping": "max_tokens/max_output_tokens",
+            "description": "最大输出 token。"
+          },
+          {
+            "name": "tools",
+            "type": "array",
+            "required": false,
+            "mapping": "tools/toolConfig",
+            "description": "工具定义。"
+          },
+          {
+            "name": "tool_choice",
+            "type": "object|string",
+            "required": false,
+            "mapping": "tool_choice",
+            "description": "工具选择策略。"
+          },
+          {
+            "name": "response_format",
+            "type": "object",
+            "required": false,
+            "mapping": "response_format/text",
+            "description": "结构化输出配置。"
+          },
+          {
+            "name": "stream",
+            "type": "boolean",
+            "required": false,
+            "mapping": "stream",
+            "description": "流式开关。"
+          }
+        ],
+        "create": {
+          "method": "POST",
+          "path": "/chat/completions",
+          "contentType": "application/json",
+          "body": {
+            "model": {
+              "$ref": "request.model"
+            },
+            "messages": {
+              "$ref": "request.messages"
+            },
+            "temperature": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.temperature"
+              }
+            },
+            "top_p": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.top_p"
+              }
+            },
+            "max_tokens": {
+              "$omitEmpty": {
+                "$coalesce": [
+                  {
+                    "$ref": "request.extra.max_tokens"
+                  },
+                  {
+                    "$ref": "request.providerOptions.chat-completion.max_tokens"
+                  }
+                ]
+              }
+            },
+            "tools": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.tools"
+              }
+            },
+            "tool_choice": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.tool_choice"
+              }
+            },
+            "response_format": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.response_format"
+              }
+            },
+            "stream": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.stream"
+              }
+            },
+            "stop": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.stop"
+              }
+            },
+            "seed": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.seed"
+              }
+            },
+            "frequency_penalty": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.frequency_penalty"
+              }
+            },
+            "presence_penalty": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.presence_penalty"
+              }
+            },
+            "logprobs": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.logprobs"
+              }
+            },
+            "top_logprobs": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.top_logprobs"
+              }
+            },
+            "user": {
+              "$omitEmpty": {
+                "$ref": "request.providerOptions.chat-completion.user"
+              }
+            }
+          }
+        },
+        "agent": {
+          "method": "POST",
+          "path": "/chat/completions",
+          "contentType": "application/json",
+          "body": {
+            "$merge": [
+              {
+                "$ref": "request.extra.agent.chatCompletion"
+              },
+              {
+                "model": {
+                  "$ref": "request.model"
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "succeeded",
+          "textPaths": [
+            "choices.0.message.content",
+            "choices.0.text"
+          ],
+          "reasoningPaths": [
+            "choices.0.message.reasoning_content"
+          ],
+          "usage": {
+            "$ref": "response.usage"
+          },
+          "errorPaths": [
+            "error.code"
+          ],
+          "messagePaths": [
+            "error.message"
+          ]
+        },
+        "agentResponse": {
+          "textPaths": [
+            "choices.0.message.content",
+            "choices.0.text"
+          ],
+          "reasoningPaths": [
+            "choices.0.message.reasoning_content"
+          ],
+          "toolCallsPath": "choices.0.message.tool_calls",
+          "toolCallIdPaths": [
+            "id"
+          ],
+          "toolCallNamePaths": [
+            "function.name"
+          ],
+          "toolCallArgumentsPaths": [
+            "function.arguments"
+          ]
+        }
+      }
+    ]
+  }
+}

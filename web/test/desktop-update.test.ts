@@ -236,7 +236,7 @@ describe("desktop update parsing", () => {
         expect(desktopUpdateActionLabel("available")).toBe("下载更新");
         expect(desktopUpdateActionLabel("ready")).toBe("安装更新");
         expect(desktopUpdateProgressLabel(state({ status: "downloading", downloadedBytes: 12 * 1024 * 1024, totalBytes: 40 * 1024 * 1024 }))).toBe("12 MB / 40 MB");
-        expect(userFacingDesktopUpdateError("Get https://github.com/glanderness/BeefTV/releases/latest/download/desktop-update.json")).toBe("更新没有完成，请再试一次。");
+        expect(userFacingDesktopUpdateError("Get https://github.com/glanderness/光宇无限画布/releases/latest/download/desktop-update.json")).toBe("更新没有完成，请再试一次。");
         expect(userFacingDesktopUpdateError("画布没有保存完成，更新没有开始。请稍后再试。")).toBe("画布没有保存完成，更新没有开始。请稍后再试。");
     });
 
@@ -473,7 +473,7 @@ describe("desktop update controller", () => {
         const mock = mockBinding(state({ status: "idle", currentVersion: "v1.5.1" }));
         mock.binding.CheckForUpdate = async () => {
             mock.calls.check += 1;
-            throw new Error("https://github.com/glanderness/BeefTV/releases/latest/download/desktop-update.json");
+            throw new Error("https://github.com/glanderness/光宇无限画布/releases/latest/download/desktop-update.json");
         };
         const controller = createDesktopUpdateController({
             getBinding: () => mock.binding,

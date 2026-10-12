@@ -19,7 +19,7 @@ Wails 和浏览器开发模式共用同一套 `127.0.0.1` HTTP 合同。路由�
 
 `POST /assistant/ui-session` 返回仅驻留内存、绑定当前 owner 的 `token` 与 `expiresAt`。界面在到期前 30 秒重新签发凭据，同一身份的并发请求共用签发结果；重置或切换身份后旧响应不能恢复旧凭据。签发仍要求原有本机同源与 owner/桌面引导校验。
 
-`POST /assistant/chat` 的响应头 `X-Beeftv-Turn-Admission` 区分 `rejected`（尚未调用业务轮次入口）、`unknown`（已经尝试开始轮次）与 `admitted`（已创建轮次）。仅明确的 `rejected` 或尚未发送消息的签发失败可按未接纳处理；缺少标记、网络错误或接纳后的断流仍需读取回执与画布确认。凭据续签和 403 失效处理都不会自动重放消息。
+`POST /assistant/chat` 的响应头 `X-光宇无限画布-Turn-Admission` 区分 `rejected`（尚未调用业务轮次入口）、`unknown`（已经尝试开始轮次）与 `admitted`（已创建轮次）。仅明确的 `rejected` 或尚未发送消息的签发失败可按未接纳处理；缺少标记、网络错误或接纳后的断流仍需读取回执与画布确认。凭据续签和 403 失效处理都不会自动重放消息。
 
 ## 核心路由组
 
@@ -50,7 +50,7 @@ Wails 和浏览器开发模式共用同一套 `127.0.0.1` HTTP 合同。路由�
 
 `POST /timeline/renders` 接收同一套时间线快照和输出选项（宽高、帧率、采样率、是否烧录字幕），创建本机 ffmpeg 成片任务。选项进入任务输入并在执行时编译进语义计划。
 
-`POST /timeline/transcriptions` 接收待转写素材编号和可选语言，创建字幕转写任务。只接受当前用户已上传完成的音视频。省略 `model` 使用本地 whisper.cpp；指定 `model` 使用已连接 BeefTV 账号的云端转写模型，必须由当前目录声明 `audio.transcriptions`。云端请求在服务端提取单声道 16 kHz WAV 后提交，最多 25 MiB；凭据不写入任务，排队期间连接改变会拒绝执行。云端识别按模型计费，结果以带时间的字幕返回。
+`POST /timeline/transcriptions` 接收待转写素材编号和可选语言，创建字幕转写任务。只接受当前用户已上传完成的音视频。省略 `model` 使用本地 whisper.cpp；指定 `model` 使用已连接 光宇无限画布 账号的云端转写模型，必须由当前目录声明 `audio.transcriptions`。云端请求在服务端提取单声道 16 kHz WAV 后提交，最多 25 MiB；凭据不写入任务，排队期间连接改变会拒绝执行。云端识别按模型计费，结果以带时间的字幕返回。
 
 `POST /depth-captures` 接收待处理视频素材编号，创建本机深度动作捕捉任务。只接受当前用户已上传完成的视频。可选 `nodeId` 指定结果节点，此时必须提供 `projectId`；任务保存目标节点并在完成后使用既有画布任务绑定操作回填。节点必须仍引用该任务，已删除或已改用其他任务的节点不会被恢复或覆盖。
 
@@ -89,8 +89,8 @@ Wails 和浏览器开发模式共用同一套 `127.0.0.1` HTTP 合同。路由�
 
 ### 助手回合归属
 
-内置助手宿主调用 `/ops/:op` 时出示自己的宿主凭据 `X-Beeftv-Agent-Token`（由后端注入宿主进程，页面与
-外部客户端拿不到），并带上后端在 `/assistant/chat` 中签发、随转发体下发的 `X-Beeftv-Agent-Turn`。
+内置助手宿主调用 `/ops/:op` 时出示自己的宿主凭据 `X-光宇无限画布-Agent-Token`（由后端注入宿主进程，页面与
+外部客户端拿不到），并带上后端在 `/assistant/chat` 中签发、随转发体下发的 `X-光宇无限画布-Agent-Turn`。
 后端按该回合记录读取这一轮被验证过的范围，而不是信任任何调用方自报的列表：
 
 - 会话默认范围是当前画布，加上当前画布文档里真实关联的素材与生成任务（沿用画布既有的媒体引用解析）。
@@ -117,19 +117,19 @@ Wails 和浏览器开发模式共用同一套 `127.0.0.1` HTTP 合同。路由�
 
 ### 外部客户端连接
 
-桌面设置的「外部 Agent」提供 Codex、Claude Code、Claude Desktop、Cursor 及其他 MCP 客户端的接入配置。Claude Desktop 使用开发者设置中的 `mcpServers` JSON；Claude Code 使用终端命令，Windows 命令需在 PowerShell 运行。保留其他 MCP 服务配置，连接时保持 BeefTV 开启。
+桌面设置的「外部 Agent」提供 Codex、Claude Code、Claude Desktop、Cursor 及其他 MCP 客户端的接入配置。Claude Desktop 使用开发者设置中的 `mcpServers` JSON；Claude Code 使用终端命令，Windows 命令需在 PowerShell 运行。保留其他 MCP 服务配置，连接时保持 光宇无限画布 开启。
 
-配置固定使用随包 CLI 的绝对路径和 `BEEFTV_DATA_DIR`，避免客户端继承的环境选错工作区。Windows CLI 为主程序旁的 `cli/beeftv.exe`，不要把桌面主程序 `BeefTV.exe` 用作 MCP 命令。安装文件不完整时，`POST /agent-clients` 返回 412 / `cli_unavailable`，不签发凭据；重新下载并完整解压后重试。
+配置固定使用随包 CLI 的绝对路径和 `BEEFTV_DATA_DIR`，避免客户端继承的环境选错工作区。Windows CLI 为主程序旁的 `cli/beeftv.exe`，不要把桌面主程序 `光宇无限画布.exe` 用作 MCP 命令。安装文件不完整时，`POST /agent-clients` 返回 412 / `cli_unavailable`，不签发凭据；重新下载并完整解压后重试。
 
 MCP 使用官方 Go SDK 的 stdio transport；stdout 只写协议消息，启动诊断写 stderr。未发现运行实例时返回 `runtime_not_found`，不猜测默认端口；读取操作清单的启动等待上限为 5 秒。
 
 使用运行时发现地址的 CLI/MCP 会在每次调用前重新读取当前实例，桌面重启换端口后，下一次调用连接新实例。显式设置 `BEEFTV_BASE_URL` 时保持固定地址。连接失败不会自动重发写操作，以免重复执行已送达的请求。
 
-Windows 的运行地址描述文件位于用户目录的 `.beeftv/runtime/`，按数据目录的规范化路径摘要分开保存，并校验工作区身份。该位置在 AppData 外，客户端不再读取 AppData 中旧的 `runtime.json`，避免 Microsoft Store/MSIX 客户端的私有副本遮住真实实例。数据库和素材仍留在原工作区。升级后保持 BeefTV 开启，并在「外部 Agent」重新生成连接配置。
+Windows 的运行地址描述文件位于用户目录的 `.beeftv/runtime/`，按数据目录的规范化路径摘要分开保存，并校验工作区身份。该位置在 AppData 外，客户端不再读取 AppData 中旧的 `runtime.json`，避免 Microsoft Store/MSIX 客户端的私有副本遮住真实实例。数据库和素材仍留在原工作区。升级后保持 光宇无限画布 开启，并在「外部 Agent」重新生成连接配置。
 
 ### 只读边界
 
-桌面实例的已登记外部客户端使用自身 ID 与 Bearer 凭据访问 `/ops`、`/ops/:op` 以及业务目录列出的 REST 接口，不需要也不应持有桌面启动令牌。`GET /business/tools` 从当前挂载的业务路由生成目录，包含方法、路径、参数 Schema 和收费提交标记；只有目录中的方法与路径接受外部凭据。业务调用复用原 handler/service，继续检查归属、参数、余额与版本冲突。外部凭据不能签发客户端、换取 UI 会话、读取既有密钥或控制内置宿主、更新器。内置 UI 会话签发另需 Wails 绑定提供的独立 `X-Beeftv-UI-Bootstrap` 凭据；仅有 `X-Desktop-Token` 不足以签发。
+桌面实例的已登记外部客户端使用自身 ID 与 Bearer 凭据访问 `/ops`、`/ops/:op` 以及业务目录列出的 REST 接口，不需要也不应持有桌面启动令牌。`GET /business/tools` 从当前挂载的业务路由生成目录，包含方法、路径、参数 Schema 和收费提交标记；只有目录中的方法与路径接受外部凭据。业务调用复用原 handler/service，继续检查归属、参数、余额与版本冲突。外部凭据不能签发客户端、换取 UI 会话、读取既有密钥或控制内置宿主、更新器。内置 UI 会话签发另需 Wails 绑定提供的独立 `X-光宇无限画布-UI-Bootstrap` 凭据；仅有 `X-Desktop-Token` 不足以签发。
 
 外部 Agent 的执行审批由连接的 Agent 负责。新连接不再显示权限选择，缺省签发完整创作访问；历史明确签发的只读连接保留只读，可重新连接取得新凭据。MCP 从同一业务目录与共享操作目录注册工具。CLI 使用 `ops call <operation> --params '<JSON>'` 调用共享操作，使用 `business discover`、`business call --tool <id> --params '<JSON>'` 和 `business upload --file <path>` 发现、调用和上传。上传文件由外部 CLI 在本机读取，再经资源、技能或插件上传接口发送；后端不接受任意本机文件路径。模型配置读取会隐藏所有渠道密钥；带 `expectedRevision` 保存配置时，密钥字段缺省或为空会保留已有值。
 
@@ -142,7 +142,7 @@ Windows 的运行地址描述文件位于用户目录的 `.beeftv/runtime/`，�
 
 内置 Pi 使用另一份按回合保存的权限：`POST /assistant/chat` 可带 `permissionMode: "read-only" | "canvas" | "full-access"`。缺省和旧记录为 `canvas`，不自动升权。只读能查看本用户工作区内容，不能修改、渲染或提交生成提议；当前画布模式保留当前画布写入范围；完全访问能读本用户工作区并修改所有画布。权限在 Go 开始回合时固定，补充输入不能改变，宿主恢复前重新读取；执行中的界面选择器显示该回合权限。技能仍只能读取本轮选定的固定版本，完全访问不开放宿主机 shell。
 
-技能正文按 UTF-8 字节计量：单个正文最多 256 KiB，每轮所选技能正文合计最多 512 KiB，正文完整读取，不静默截断。超限返回 `skill_instruction_too_large`。技能校验发生在开始回合前；此阶段拒绝以及宿主读取请求体时返回的 `body_too_large` 均标记 `X-Beeftv-Turn-Admission: rejected`，客户端可以修改输入后再次发送。其他结果未知的错误仍需读取回执，不能直接重发。
+技能正文按 UTF-8 字节计量：单个正文最多 256 KiB，每轮所选技能正文合计最多 512 KiB，正文完整读取，不静默截断。超限返回 `skill_instruction_too_large`。技能校验发生在开始回合前；此阶段拒绝以及宿主读取请求体时返回的 `body_too_large` 均标记 `X-光宇无限画布-Turn-Admission: rejected`，客户端可以修改输入后再次发送。其他结果未知的错误仍需读取回执，不能直接重发。
 
 跨画布回合在第一次写入每张画布前，于业务操作同一事务内保存原文。结算返回 `change.canvasChanges`；单次撤销先校验全部目标，再在一个事务内恢复。任何目标在该轮之后被修改，整组撤销返回冲突，不恢复部分画布。内置暂不提供非画布的 `conversation.message.attach`；外部调用保持开放。
 
@@ -166,7 +166,7 @@ Windows 的运行地址描述文件位于用户目录的 `.beeftv/runtime/`，�
 
 NewAPI Channel 2 与 BeefAPI 视频的暂时下载断连会保留原任务 ID 并继续后台取回，自动恢复最长到任务开始后 24 小时；超出窗口后可在失败任务详情手动取回。任务日志接口提供脱敏的 `summary`，不返回原始 `message` / `payload` 内容；摘要不写回数据库。
 
-任务列表与详情中的 `errorCode` 是 BeefTV 归类后的错误类别，不能当作上游原始代码。已识别的 SQLite 缺表/列、锁定、只读、I/O 和约束失败使用 `local_storage`，提示本地数据库无法读写、不自动重试；不能因为外层 HTTP 400 把它归为模型参数错误。判断只读取实际错误消息，不读取请求或提示词回显。新记录的失败任务可包含 `failureDiagnostics`：`source` 区分本地校验、上游 HTTP / 业务响应、本地结果处理及未知来源；`summary` 保存脱敏后的错误摘要，另带实际记录到的 `providerCode`、`httpStatus`、`param`、`requestId`、`providerTaskId`、`stage` 和 `capturedAt`。缺失信息不推断或补造。`createdAt` 是任务创建时间，`completedAt` 是结束时间，均不等于错误记录时间。
+任务列表与详情中的 `errorCode` 是 光宇无限画布 归类后的错误类别，不能当作上游原始代码。已识别的 SQLite 缺表/列、锁定、只读、I/O 和约束失败使用 `local_storage`，提示本地数据库无法读写、不自动重试；不能因为外层 HTTP 400 把它归为模型参数错误。判断只读取实际错误消息，不读取请求或提示词回显。新记录的失败任务可包含 `failureDiagnostics`：`source` 区分本地校验、上游 HTTP / 业务响应、本地结果处理及未知来源；`summary` 保存脱敏后的错误摘要，另带实际记录到的 `providerCode`、`httpStatus`、`param`、`requestId`、`providerTaskId`、`stage` 和 `capturedAt`。缺失信息不推断或补造。`createdAt` 是任务创建时间，`completedAt` 是结束时间，均不等于错误记录时间。
 
 诊断字段在本地 schema v3 中以可空文本列保存，旧任务不补写原始错误，重试会清除上一轮诊断。任务列表、详情和画布的“复制排查信息”使用同一份诊断；复制内容不包含请求正文、提示词、凭据、素材 URL 或本地文件路径。`providerRequestId` 可能是供应商任务标识，在复制内容中标作“服务端关联 ID”，与 HTTP 请求 ID 分开。
 

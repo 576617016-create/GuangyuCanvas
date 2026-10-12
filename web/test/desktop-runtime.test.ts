@@ -21,12 +21,12 @@ test("desktop runtime configures axios and same-runtime fetches without persisti
     expect(apiBaseURL).toBe("http://127.0.0.1:43123/api");
     expect(apiClient.defaults.baseURL).toBe("http://127.0.0.1:43123/api");
     expect(apiClient.defaults.headers.common["X-Desktop-Token"]).toBe("ephemeral-token");
-    expect(apiClient.defaults.headers.common["X-Beeftv-UI-Bootstrap"]).toBe("ui-only-token");
+    expect(apiClient.defaults.headers.common["X-光宇无限画布-UI-Bootstrap"]).toBe("ui-only-token");
 
     await fetch("http://127.0.0.1:43123/api/tasks", { headers: { Accept: "application/json" } });
     expect(captured?.headers.get("X-Desktop-Token")).toBe("ephemeral-token");
     expect(captured?.headers.get("Accept")).toBe("application/json");
-    expect(captured?.headers.get("X-Beeftv-UI-Bootstrap")).toBeNull();
+    expect(captured?.headers.get("X-光宇无限画布-UI-Bootstrap")).toBeNull();
 });
 
 test("desktop bootstrap obtains ephemeral runtime configuration from the Wails binding", async () => {

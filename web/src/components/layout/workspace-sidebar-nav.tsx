@@ -51,7 +51,7 @@ function buildNav(features: FeatureAvailability): { groups: WorkspaceNavGroup[];
                 { ...toolItem("canvas", "/project"), title: "项目" },
                 { ...toolItem("assets", "/assets"), title: "资产" },
                 { id: "settings:channels", title: "模型配置", icon: Settings2, to: "/settings?section=channels" },
-                { id: "agents", title: "BeefTV MCP", icon: Plug, to: "/agents" },
+                { id: "agents", title: "光宇无限画布 MCP", icon: Plug, to: "/agents" },
             ],
         },
     ];
