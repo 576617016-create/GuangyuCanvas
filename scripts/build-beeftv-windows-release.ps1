@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Native Windows amd64 release entrypoint for the BeefTV Wails desktop app.
