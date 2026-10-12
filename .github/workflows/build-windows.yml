@@ -11,39 +11,66 @@ permissions:
 jobs:
   build-windows:
     name: 用 GitHub 免费电脑编译 Windows 版
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 90
     steps:
       - name: 下载代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.25
+      - name: 安装 Go（按 backend/go.mod 的版本）
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
 
-      - name: 安装 Bun（前端构建工具）
+      - name: 安装 Bun（前端构建 + 插件打包工具）
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
-      - name: 安装 C 编译器（CGO 必需，go-sqlite3 依赖）
+      - name: 安装 Node 24.15.0（给内置 agent-host 用的运行时）
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+
+      - name: 选定内置 Node 运行时路径
         shell: bash
         run: |
-          C:/msys64/usr/bin/bash -lc 'pacman -S --needed --noconfirm mingw-w64-x86_64-gcc'
-          echo "C:/msys64/mingw64/bin" >> "$GITHUB_PATH"
+          node -e 'const fs=require("fs"),p=require("path"); const bin=p.dirname(process.execPath); fs.appendFileSync(process.env.GITHUB_ENV, `BEEFTV_NODE_RUNTIME=${process.platform==="win32"?bin:p.dirname(bin)}\n`);'
 
-      - name: 安装 Wails 命令行工具
-        shell: pwsh
-        run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
-          echo "$(go env GOPATH)/bin" >> $env:GITHUB_PATH
+      - name: 安装 MSYS2 UCRT64 GCC（Go CGO / go-sqlite3 必需）
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          release: true
+          path-type: inherit
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-binutils
 
-      - name: 编译并打包（产出 光宇无限画布.exe）
-        shell: pwsh
-        working-directory: backend/cmd/desktop
+      - name: 校验 DWARF5 CGO 编译器并写入环境
         env:
-          # 静态链接 MinGW 运行时，避免 exe 在用户电脑上因缺少 libgcc/libwinpthread 等 dll 而无法启动
+          MSYSTEM_PREFIX: ${{ steps.msys2.outputs.msys2-location }}\ucrt64
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\assert-windows-dwarf5-cgo.ps1
+
+      - name: 编译并打包（产出 exe + 官方插件 + agent-host + cli）
+        # 静态链接 MinGW 运行时，避免 exe 在用户电脑上因缺少 libgcc/libwinpthread 等 dll 而无法启动
+        env:
+          CGO_ENABLED: "1"
           CGO_LDFLAGS: "-static -static-libgcc -static-libstdc++"
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-beeftv-windows-release.ps1
+
+      - name: 检查产物
+        shell: bash
         run: |
-          wails build -platform windows/amd64 -webview2 download
+          echo "=== build/bin 内容 ==="
+          ls -la backend/cmd/desktop/build/bin
+          echo "=== 官方插件数量 ==="
+          ls backend/cmd/desktop/build/bin/plugin-packages/*.beeftv-plugin 2>/dev/null | wc -l
+          test -f "backend/cmd/desktop/build/bin/光宇无限画布.exe" && echo "EXE OK" || echo "EXE MISSING"
 
       - name: 上传成品（可下载的压缩包）
         uses: actions/upload-artifact@v4
