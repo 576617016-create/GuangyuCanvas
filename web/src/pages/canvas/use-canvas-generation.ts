@@ -102,7 +102,6 @@ export async function recoverCanvasGenerationTaskNode(input: {
     const isCurrentProject = () => !input.signal.aborted && (input.isCurrentProject?.() ?? true);
     if (!isCurrentProject()) return;
     const consumeContinuation = input.consumeContinuation ?? consumeCanvasGenerationContinuation;
-    const recoveryBaseNodes = useCanvasStore.getState().projects.find((project) => project.id === input.projectId)?.nodes ?? input.nodesRef.current;
     try {
         if (input.completed.projectId && input.completed.projectId !== input.projectId) throw new Error("生成任务不属于当前画布");
         if (!isCurrentProject()) return;
@@ -140,7 +139,7 @@ export async function recoverCanvasGenerationTaskNode(input: {
                         ),
                     );
                 },
-                { projectId: input.projectId, nodeId: input.node.id, previousNodes: recoveryBaseNodes, nodesRef: input.nodesRef, setNodes: input.setNodes },
+                { projectId: input.projectId, nodeId: input.node.id, nodesRef: input.nodesRef, setNodes: input.setNodes },
                 input.signal,
             );
         }

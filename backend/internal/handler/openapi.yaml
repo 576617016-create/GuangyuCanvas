@@ -360,41 +360,6 @@ paths:
           description: 信封 data 包含 currentRevision 和 snapshots；每项含 id、revision、title、nodeCount、connectionCount、payloadBytes、reason、contentUpdatedAt、createdAt，不含正文
         "404":
           description: 画布不存在或无权访问
-  /canvas-projects/{id}/generated-assets:
-    put:
-      tags: [canvas]
-      summary: 原子发布生成素材与画布结果
-      description: 按 Resource 精确绑定候选 Asset，并在同一数据库事务中保存 Asset、画布和历史快照；任一步失败均不产生半提交。
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [project, assets]
-              properties:
-                project:
-                  type: object
-                  required: [id, revision]
-                  additionalProperties: true
-                assets:
-                  type: array
-                  items:
-                    type: object
-                    required: [id, kind, data]
-                    additionalProperties: true
-      responses:
-        "200":
-          description: 信封 data.project 返回递增后的画布 revision
-        "400":
-          description: 素材、Resource 或画布引用不合法
-        "409":
-          description: 画布 revision 冲突，Asset 与画布均未提交
   /canvas-projects/{id}/history/{snapshotId}:
     get:
       tags: [canvas]

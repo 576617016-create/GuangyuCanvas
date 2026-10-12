@@ -287,10 +287,6 @@ func (s *Service) UpsertUserCanvasProjectWithTx(tx *gorm.DB, userID string, raw 
 	return s.canvasDomainWithTx(tx).UpsertUserCanvasProject(userID, raw)
 }
 
-func (s *Service) CommitUserCanvasProjectAssets(userID string, raw json.RawMessage, assets []json.RawMessage) (UserDataSummary, error) {
-	return s.canvasDomain().CommitUserCanvasProjectAssets(userID, raw, assets)
-}
-
 func (s *Service) DeleteUserCanvasProject(userID string, id string) error {
 	return s.canvasDomain().DeleteUserCanvasProject(userID, id)
 }

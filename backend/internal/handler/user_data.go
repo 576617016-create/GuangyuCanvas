@@ -615,39 +615,6 @@ func registerUserDataRoutes(r *gin.RouterGroup, svc *app.Service) {
 		log.Printf("canvas_restore request_id=%q trace_id=%q actor=%q canvas=%q snapshot=%q base_revision=%d revision=%d", RequestID(c), TraceID(c), user.ID, c.Param("id"), c.Param("snapshotId"), *req.Revision, project.Revision)
 		ok(c, gin.H{"project": project})
 	})
-	r.PUT("/canvas-projects/:id/generated-assets", func(c *gin.Context) {
-		user, err := currentUser(c, svc)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		policy, available := loadRuntimePolicy(c, svc)
-		if !available || !enforceRateLimit(c, "canvas-write:"+user.ID, policy.Request.CanvasWritePerMinute, time.Minute) {
-			return
-		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 10<<20)
-		var req struct {
-			Project json.RawMessage   `json:"project"`
-			Assets  []json.RawMessage `json:"assets"`
-		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			fail(c, http.StatusBadRequest, err)
-			return
-		}
-		var identity struct {
-			ID string `json:"id"`
-		}
-		if json.Unmarshal(req.Project, &identity) != nil || identity.ID != c.Param("id") {
-			fail(c, http.StatusBadRequest, app.BadAuthRequest("画布 ID 与请求路径不一致"))
-			return
-		}
-		project, err := svc.CommitUserCanvasProjectAssets(user.ID, req.Project, req.Assets)
-		if err != nil {
-			failService(c, err)
-			return
-		}
-		ok(c, gin.H{"project": project})
-	})
 	r.PUT("/canvas-projects/:id", func(c *gin.Context) {
 		user, err := currentUser(c, svc)
 		if err != nil {
