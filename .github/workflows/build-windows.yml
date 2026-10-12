@@ -39,6 +39,9 @@ jobs:
       - name: 编译并打包（产出 光宇无限画布.exe）
         shell: pwsh
         working-directory: backend/cmd/desktop
+        env:
+          # 静态链接 MinGW 运行时，避免 exe 在用户电脑上因缺少 libgcc/libwinpthread 等 dll 而无法启动
+          CGO_LDFLAGS: "-static -static-libgcc -static-libstdc++"
         run: |
           wails build -platform windows/amd64 -webview2 download
 
